@@ -1,0 +1,78 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Google Sans", "Assistant", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Google Sans", "Frank Ruhl Libre", "Assistant", serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --color-paper: #faf9f7;
+  --color-ink: #1c1917;
+
+  --animate-block-in: block-in 0.35s cubic-bezier(0.21, 1.02, 0.73, 1) both;
+  --animate-rise: rise 0.55s cubic-bezier(0.21, 1.02, 0.73, 1) both;
+  --animate-pop: pop 0.18s cubic-bezier(0.21, 1.02, 0.73, 1) both;
+  --animate-toast: toast 0.32s cubic-bezier(0.21, 1.02, 0.73, 1) both;
+  --animate-fade: fade 0.2s ease-out both;
+
+  @keyframes block-in {
+    from { opacity: 0; transform: translateY(14px) scale(0.985); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(18px); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes pop {
+    from { opacity: 0; transform: translateY(-4px) scale(0.97); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes toast {
+    from { opacity: 0; transform: translateY(16px) scale(0.96); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-paper font-sans text-ink antialiased;
+  background-image: radial-gradient(
+    1100px 480px at 80% -12%,
+    rgba(15, 118, 110, 0.055),
+    transparent 62%
+  );
+  background-repeat: no-repeat;
+}
+
+::selection {
+  background: #99f6e4;
+  color: #134e4a;
+}
+
+/* Borderless inputs inside table cells */
+.cell-input {
+  @apply w-full bg-transparent px-3 py-2.5 text-[13.5px] text-ink outline-none transition-colors placeholder:text-stone-300 focus:bg-teal-600/5;
+}
+
+/* Dark scrollbars for code areas */
+.code-scroll::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.code-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.code-scroll::-webkit-scrollbar-thumb {
+  background: #57534e;
+  border-radius: 8px;
+  border: 3px solid #161412;
+}
+.code-scroll::-webkit-scrollbar-thumb:hover {
+  background: #78716c;
+}
