@@ -8,10 +8,10 @@ export default function DynamicBlock({ block, invalid, onDelete, children }) {
   return (
     <section
       id={`block-${block.id}`}
-      className={`group/block animate-block-in relative overflow-hidden rounded-2xl border bg-white transition-all duration-200 ${
+      className={`group/block animate-block-in relative overflow-hidden rounded-2xl border bg-white transition-all duration-200 dark:bg-stone-900 dark:shadow-none ${
         invalid
-          ? 'border-red-300 shadow-[0_1px_3px_rgba(220,38,38,0.08)] ring-[3px] ring-red-500/10'
-          : 'border-stone-200 shadow-[0_1px_3px_rgba(28,25,23,0.04),0_10px_28px_-16px_rgba(28,25,23,0.1)] hover:shadow-[0_1px_3px_rgba(28,25,23,0.05),0_14px_36px_-16px_rgba(28,25,23,0.14)]'
+          ? 'border-red-300 shadow-[0_1px_3px_rgba(220,38,38,0.08)] ring-[3px] ring-red-500/10 dark:border-red-900'
+          : 'border-stone-200 shadow-[0_1px_3px_rgba(28,25,23,0.04),0_10px_28px_-16px_rgba(28,25,23,0.1)] hover:shadow-[0_1px_3px_rgba(28,25,23,0.05),0_14px_36px_-16px_rgba(28,25,23,0.14)] dark:border-stone-800'
       }`}
     >
       <span
@@ -22,21 +22,21 @@ export default function DynamicBlock({ block, invalid, onDelete, children }) {
       <header className="flex items-center justify-between gap-3 px-6 pb-4 pt-5">
         <div className="flex items-center gap-3.5">
           <span
-            className="flex size-9 shrink-0 items-center justify-center rounded-xl"
-            style={{ background: meta.tint, color: meta.accent }}
+            className="flex size-9 shrink-0 items-center justify-center rounded-xl text-(--accent) dark:text-(--accent-dark)"
+            style={{ background: meta.tint, '--accent': meta.accent, '--accent-dark': meta.accentDark }}
           >
             <Icon className="size-[18px]" />
           </span>
           <div>
             <h3 className="text-[16px] font-bold leading-tight text-ink">{meta.title}</h3>
-            <p className="mt-0.5 text-[12.5px] text-stone-500">{meta.subtitle}</p>
+            <p className="mt-0.5 text-[12.5px] text-stone-500 dark:text-stone-400">{meta.subtitle}</p>
           </div>
         </div>
         <button
           type="button"
           aria-label="מחיקת בלוק"
           onClick={onDelete}
-          className="rounded-lg p-2 text-stone-300 opacity-0 transition-all duration-150 hover:bg-red-50 hover:text-red-600 focus-visible:opacity-100 group-hover/block:opacity-100"
+          className="rounded-lg p-2 text-stone-300 opacity-0 transition-all duration-150 hover:bg-red-50 hover:text-red-600 focus-visible:opacity-100 group-hover/block:opacity-100 dark:text-stone-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
         >
           <Trash2 className="size-4" />
         </button>

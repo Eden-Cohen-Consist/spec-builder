@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-sans: "Google Sans", "Assistant", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Google Sans", "Frank Ruhl Libre", "Assistant", serif;
@@ -36,6 +38,17 @@
   }
 }
 
+:root {
+  color-scheme: light;
+}
+
+/* Warm charcoal dark theme — flips the paper/ink tokens every component builds on */
+.dark {
+  --color-paper: #131110;
+  --color-ink: #e9e6e2;
+  color-scheme: dark;
+}
+
 html {
   scroll-behavior: smooth;
 }
@@ -50,14 +63,27 @@ body {
   background-repeat: no-repeat;
 }
 
+.dark body {
+  background-image: radial-gradient(
+    1100px 480px at 80% -12%,
+    rgba(45, 212, 191, 0.06),
+    transparent 62%
+  );
+}
+
 ::selection {
   background: #99f6e4;
   color: #134e4a;
 }
 
+.dark ::selection {
+  background: #134e4a;
+  color: #ccfbf1;
+}
+
 /* Borderless inputs inside table cells */
 .cell-input {
-  @apply w-full bg-transparent px-3 py-2.5 text-[13.5px] text-ink outline-none transition-colors placeholder:text-stone-300 focus:bg-teal-600/5;
+  @apply w-full bg-transparent px-3 py-2.5 text-[13.5px] text-ink outline-none transition-colors placeholder:text-stone-300 focus:bg-teal-600/5 dark:placeholder:text-stone-600 dark:focus:bg-teal-500/10;
 }
 
 /* Dark scrollbars for code areas */

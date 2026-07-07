@@ -10,18 +10,18 @@ export default function TestDataBlock({ block, onUpdate }) {
 
   return (
     <div>
-      <div className="overflow-hidden rounded-xl border border-stone-200">
+      <div className="overflow-hidden rounded-xl border border-stone-200 dark:border-stone-800">
         <table className="w-full text-[13.5px]">
           <thead>
-            <tr className="border-b border-stone-200 bg-stone-50 text-[12px] font-semibold text-stone-500">
+            <tr className="border-b border-stone-200 bg-stone-50 text-[12px] font-semibold text-stone-500 dark:border-stone-800 dark:bg-stone-800/50 dark:text-stone-400">
               <th className="w-[38%] px-3 py-2.5 text-start font-semibold">שדה</th>
               <th className="px-3 py-2.5 text-start font-semibold">ערך לבדיקה</th>
               <th className="w-10" />
             </tr>
           </thead>
-          <tbody className="divide-y divide-stone-100">
+          <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
             {block.rows.map((row) => (
-              <tr key={row.id} className="group/row transition-colors hover:bg-stone-50/60">
+              <tr key={row.id} className="group/row transition-colors hover:bg-stone-50/60 dark:hover:bg-stone-800/30">
                 <td>
                   <input
                     value={row.key}

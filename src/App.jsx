@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Sparkles, AlertTriangle, RotateCcw, Check, CloudUpload } from 'lucide-react'
+import { Sparkles, AlertTriangle, RotateCcw, Check, CloudUpload, Sun, Moon } from 'lucide-react'
 import AdminSection from './components/AdminSection.jsx'
 import BusinessSection from './components/BusinessSection.jsx'
 import FlowBuilder from './components/FlowBuilder.jsx'
@@ -7,15 +7,43 @@ import DynamicBlock from './components/DynamicBlock.jsx'
 import HttpBlock from './components/HttpBlock.jsx'
 import SecurityBlock from './components/SecurityBlock.jsx'
 import TestDataBlock from './components/TestDataBlock.jsx'
+import TableBlock from './components/TableBlock.jsx'
 import AddBlockPopover from './components/AddBlockPopover.jsx'
 import ExportModal from './components/ExportModal.jsx'
-import { makeId, makeBlock, isThirdParty, compileSpec } from './lib.js'
+import { makeId, makeBlock, makeContactRow, hasContactContent, isThirdParty, compileSpec } from './lib.js'
 
 const DRAFT_KEY = 'glassix-spec-builder:draft:v1'
+const THEME_KEY = 'glassix-spec-builder:theme'
 
-const DEFAULT_ADMIN = { clientName: '', pmName: '', contacts: '', departmentCreated: false }
+const defaultAdmin = () => ({
+  clientName: '',
+  pmName: '',
+  contacts: [makeContactRow()],
+  departmentCreated: false,
+  departmentId: '',
+})
 const DEFAULT_BUSINESS = { goal: '', trigger: '' }
 const defaultFlow = () => [{ id: makeId(), kind: 'step', text: '' }]
+
+// Older drafts stored contacts as free text and http blocks without endpoint/method/headers
+const migrateAdmin = (saved) => {
+  const admin = { ...defaultAdmin(), ...saved }
+  if (!Array.isArray(admin.contacts) || admin.contacts.length === 0) {
+    const legacyLines =
+      typeof admin.contacts === 'string'
+        ? admin.contacts.split('\n').map((line) => line.trim()).filter(Boolean)
+        : []
+    admin.contacts = legacyLines.length
+      ? legacyLines.map((line) => ({ ...makeContactRow(), name: line }))
+      : [makeContactRow()]
+  }
+  return admin
+}
+
+const migrateBlocks = (blocks) =>
+  blocks.map((block) =>
+    block.type === 'http' ? { endpoint: '', method: 'GET', headers: [], ...block } : block,
+  )
 
 const loadDraft = () => {
   try {
@@ -27,14 +55,16 @@ const loadDraft = () => {
 const draft = loadDraft()
 
 export default function App() {
-  const [admin, setAdmin] = useState(draft?.admin ?? DEFAULT_ADMIN)
+  const [admin, setAdmin] = useState(() => (draft?.admin ? migrateAdmin(draft.admin) : defaultAdmin()))
   const [business, setBusiness] = useState(draft?.business ?? DEFAULT_BUSINESS)
   const [flow, setFlow] = useState(draft?.flow?.length ? draft.flow : defaultFlow())
-  const [blocks, setBlocks] = useState(draft?.blocks ?? [])
+  const [blocks, setBlocks] = useState(() => migrateBlocks(draft?.blocks ?? []))
   const [invalidIds, setInvalidIds] = useState(() => new Set())
+  const [adminInvalid, setAdminInvalid] = useState(false)
   const [toast, setToast] = useState(null)
   const [spec, setSpec] = useState(null)
   const [saveState, setSaveState] = useState('idle')
+  const [dark, setDark] = useState(() => document.documentElement.classList.contains('dark'))
 
   // Debounced autosave to localStorage
   useEffect(() => {
@@ -51,6 +81,18 @@ export default function App() {
     const t = setTimeout(() => setToast(null), 4500)
     return () => clearTimeout(t)
   }, [toast])
+
+  const toggleTheme = () => {
+    const next = !dark
+    setDark(next)
+    document.documentElement.classList.toggle('dark', next)
+    localStorage.setItem(THEME_KEY, next ? 'dark' : 'light')
+  }
+
+  const changeAdmin = (next) => {
+    setAdmin(next)
+    setAdminInvalid(false)
+  }
 
   const addBlock = (type) => setBlocks((prev) => [...prev, makeBlock(type)])
 
@@ -70,15 +112,25 @@ export default function App() {
   const resetDraft = () => {
     if (!window.confirm('לאפס את הטיוטה? כל הנתונים שהוזנו יימחקו.')) return
     localStorage.removeItem(DRAFT_KEY)
-    setAdmin(DEFAULT_ADMIN)
+    setAdmin(defaultAdmin())
     setBusiness(DEFAULT_BUSINESS)
     setFlow(defaultFlow())
     setBlocks([])
     setInvalidIds(new Set())
+    setAdminInvalid(false)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const generate = () => {
+    const badContacts = admin.contacts.some(
+      (c) => hasContactContent(c) && (!c.name.trim() || (!c.email.trim() && !c.phone.trim())),
+    )
+    if (badContacts) {
+      setAdminInvalid(true)
+      setToast('נא להשלים אנשי קשר — שם חובה, וכן אימייל או טלפון')
+      document.getElementById('section-admin')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      return
+    }
     const offenders = blocks.filter(
       (b) =>
         b.type === 'http' &&
@@ -110,6 +162,8 @@ export default function App() {
         return <SecurityBlock block={block} onUpdate={(patch) => updateBlock(block.id, patch)} />
       case 'testData':
         return <TestDataBlock block={block} onUpdate={(patch) => updateBlock(block.id, patch)} />
+      case 'table':
+        return <TableBlock block={block} onUpdate={(patch) => updateBlock(block.id, patch)} />
       default:
         return null
     }
@@ -117,7 +171,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen pb-40">
-      <header className="sticky top-0 z-40 border-b border-stone-200/70 bg-paper/85 backdrop-blur-md">
+      <header className="sticky top-0 z-40 border-b border-stone-200/70 bg-paper/85 backdrop-blur-md dark:border-stone-800/80">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-5 py-3">
           <div className="flex items-center gap-3">
             <span className="flex size-8 items-center justify-center rounded-lg bg-teal-700 font-display text-[15px] font-black text-white shadow-sm shadow-teal-700/30">
@@ -125,13 +179,13 @@ export default function App() {
             </span>
             <div>
               <div className="font-display text-[17px] font-bold leading-none text-ink">בונה אפיונים</div>
-              <div className="mt-1 text-[11.5px] leading-none text-stone-500">
+              <div className="mt-1 text-[11.5px] leading-none text-stone-500 dark:text-stone-400">
                 אפיונים טכניים לאינטגרציות · Glassix
               </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="hidden items-center gap-1.5 text-[12px] text-stone-400 sm:flex">
+            <span className="hidden items-center gap-1.5 text-[12px] text-stone-400 sm:flex dark:text-stone-500">
               {saveState === 'saving' ? (
                 <>
                   <CloudUpload className="size-3.5" />
@@ -139,16 +193,25 @@ export default function App() {
                 </>
               ) : (
                 <>
-                  <Check className="size-3.5 text-teal-600" />
+                  <Check className="size-3.5 text-teal-600 dark:text-teal-400" />
                   נשמר אוטומטית
                 </>
               )}
             </span>
             <button
               type="button"
+              title={dark ? 'מעבר למצב בהיר' : 'מעבר למצב כהה'}
+              aria-label={dark ? 'מעבר למצב בהיר' : 'מעבר למצב כהה'}
+              onClick={toggleTheme}
+              className="rounded-lg p-2 text-stone-400 transition-colors hover:bg-stone-100 hover:text-ink dark:text-stone-500 dark:hover:bg-stone-800"
+            >
+              {dark ? <Sun className="size-4" /> : <Moon className="size-4" />}
+            </button>
+            <button
+              type="button"
               title="איפוס טיוטה"
               onClick={resetDraft}
-              className="rounded-lg p-2 text-stone-400 transition-colors hover:bg-stone-100 hover:text-ink"
+              className="rounded-lg p-2 text-stone-400 transition-colors hover:bg-stone-100 hover:text-ink dark:text-stone-500 dark:hover:bg-stone-800"
             >
               <RotateCcw className="size-4" />
             </button>
@@ -159,13 +222,13 @@ export default function App() {
       <main className="mx-auto max-w-3xl px-5">
         <div className="animate-rise pb-8 pt-10">
           <h1 className="font-display text-[34px] font-black leading-tight text-ink">אפיון טכני חדש</h1>
-          <p className="mt-2 text-[15px] text-stone-500">
+          <p className="mt-2 text-[15px] text-stone-500 dark:text-stone-400">
             מלאו את הסעיפים הקבועים, הוסיפו בלוקים טכניים — וקבלו JSON מסודר להעברה למפתח.
           </p>
         </div>
 
         <div className="space-y-5">
-          <AdminSection value={admin} onChange={setAdmin} delay={60} />
+          <AdminSection value={admin} onChange={changeAdmin} invalid={adminInvalid} delay={60} />
           <BusinessSection value={business} onChange={setBusiness} delay={120} />
           <FlowBuilder flow={flow} onChange={setFlow} delay={180} />
         </div>
@@ -173,11 +236,11 @@ export default function App() {
         <div className="animate-rise flex items-center gap-3 pb-4 pt-9" style={{ animationDelay: '240ms' }}>
           <h2 className="font-display text-[20px] font-bold text-ink">בלוקים טכניים</h2>
           {blocks.length > 0 && (
-            <span className="rounded-full bg-stone-200/70 px-2 py-0.5 text-[11.5px] font-bold text-stone-500">
+            <span className="rounded-full bg-stone-200/70 px-2 py-0.5 text-[11.5px] font-bold text-stone-500 dark:bg-stone-800 dark:text-stone-400">
               {blocks.length}
             </span>
           )}
-          <div className="h-px flex-1 bg-stone-200" />
+          <div className="h-px flex-1 bg-stone-200 dark:bg-stone-800" />
         </div>
 
         <div className="space-y-5">
@@ -195,8 +258,8 @@ export default function App() {
           <div className="animate-rise relative z-50" style={{ animationDelay: '300ms' }}>
             <AddBlockPopover onAdd={addBlock} />
             {blocks.length === 0 && (
-              <p className="mt-3 text-center text-[13px] text-stone-400">
-                עדיין אין בלוקים — הוסיפו אינטגרציה, אבטחה או נתוני בדיקה לפי הצורך
+              <p className="mt-3 text-center text-[13px] text-stone-400 dark:text-stone-500">
+                עדיין אין בלוקים — הוסיפו אינטגרציה, אבטחה, נתוני בדיקה או טבלה לפי הצורך
               </p>
             )}
           </div>
@@ -218,7 +281,7 @@ export default function App() {
 
       {toast && (
         <div className="pointer-events-none fixed inset-x-0 bottom-24 z-50 flex justify-center px-4">
-          <div className="animate-toast pointer-events-auto flex items-center gap-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[14px] font-semibold text-red-700 shadow-lg shadow-red-900/10">
+          <div className="animate-toast pointer-events-auto flex items-center gap-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[14px] font-semibold text-red-700 shadow-lg shadow-red-900/10 dark:border-red-900/60 dark:bg-red-950/90 dark:text-red-300">
             <AlertTriangle className="size-4 shrink-0" />
             {toast}
           </div>
