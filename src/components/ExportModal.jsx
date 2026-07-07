@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { Sparkles, X, Copy, Check } from 'lucide-react'
+import { buildAiExportText } from '../lib.js'
 
 export default function ExportModal({ spec, onClose }) {
   const [copied, setCopied] = useState(false)
-  const text = JSON.stringify(spec, null, 2)
+  const text = buildAiExportText(spec)
 
   useEffect(() => {
     const onKeyDown = (e) => {
@@ -15,7 +16,7 @@ export default function ExportModal({ spec, onClose }) {
 
   useEffect(() => {
     if (!copied) return
-    const t = setTimeout(() => setCopied(false), 2200)
+    const t = setTimeout(() => setCopied(false), 2500)
     return () => clearTimeout(t)
   }, [copied])
 
@@ -60,30 +61,43 @@ export default function ExportModal({ spec, onClose }) {
 
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
           <p className="mb-4 text-[14.5px] leading-relaxed text-stone-600 dark:text-stone-300">
-            השתמשו ב-JSON הזה יחד עם ה-<b className="text-ink">Master Prompt</b> שלנו כדי לייצר את
-            האפיון המלא בכלי ה-AI שלכם:
+            הכל מוכן להדבקה בצ&apos;אט AI — הוראות לסוכן + טיוטת האפיון ב-JSON:
           </p>
-          <pre
-            dir="ltr"
-            className="code-scroll max-h-[46vh] overflow-auto rounded-xl bg-[#161412] p-5 text-left dark:ring-1 dark:ring-stone-700/60"
-          >
-            <code className="font-mono text-[12.5px] leading-[1.75] text-stone-200">{text}</code>
-          </pre>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={copy}
+              aria-label={copied ? 'הועתק ללוח' : 'העתק ללוח'}
+              title={copied ? 'הועתק!' : 'העתק ללוח'}
+              className={`absolute end-3 top-3 z-10 flex size-9 items-center justify-center rounded-lg backdrop-blur-sm transition-all duration-300 active:scale-95 ${
+                copied
+                  ? 'bg-emerald-500/20 text-emerald-500 dark:bg-emerald-400/15 dark:text-emerald-400'
+                  : 'bg-white/10 text-stone-400 hover:bg-white/15 hover:text-stone-200'
+              }`}
+            >
+              <Copy
+                strokeWidth={2}
+                className={`absolute size-[17px] transition-all duration-300 ${
+                  copied ? 'scale-50 opacity-0' : 'scale-100 opacity-100'
+                }`}
+              />
+              <Check
+                strokeWidth={2.5}
+                className={`absolute size-[17px] transition-all duration-300 ${
+                  copied ? 'scale-100 opacity-100' : 'scale-50 opacity-0'
+                }`}
+              />
+            </button>
+            <pre
+              dir="ltr"
+              className="code-scroll max-h-[46vh] overflow-auto rounded-xl bg-[#161412] p-5 pe-14 text-left whitespace-pre-wrap dark:ring-1 dark:ring-stone-700/60"
+            >
+              <code className="font-mono text-[12.5px] leading-[1.75] text-stone-200">{text}</code>
+            </pre>
+          </div>
         </div>
 
-        <footer className="flex items-center justify-between gap-3 border-t border-stone-100 bg-stone-50/60 px-6 py-4 dark:border-stone-800 dark:bg-stone-950/40">
-          <button
-            type="button"
-            onClick={copy}
-            className={`inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-[14.5px] font-bold text-white shadow-md transition-all duration-200 active:scale-[0.98] ${
-              copied
-                ? 'bg-emerald-600 shadow-emerald-600/25'
-                : 'bg-teal-700 shadow-teal-700/25 hover:bg-teal-800'
-            }`}
-          >
-            {copied ? <Check className="size-4" strokeWidth={3} /> : <Copy className="size-4" />}
-            {copied ? 'הועתק ללוח' : 'העתקה ללוח'}
-          </button>
+        <footer className="flex items-center justify-end gap-3 border-t border-stone-100 bg-stone-50/60 px-6 py-4 dark:border-stone-800 dark:bg-stone-950/40">
           <button
             type="button"
             onClick={onClose}

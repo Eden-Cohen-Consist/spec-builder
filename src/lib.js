@@ -1,4 +1,5 @@
 import { INTERNAL_SYSTEMS } from './constants.js'
+import AI_REVIEW_PROMPT from './prompts/ai-review.md?raw'
 
 export const makeId = () => crypto.randomUUID()
 
@@ -67,6 +68,20 @@ export const makeBlock = (type) => {
     default:
       return base
   }
+}
+
+export const buildAiExportText = (spec) => {
+  const jsonBlock = JSON.stringify(spec, null, 2)
+  return `${AI_REVIEW_PROMPT.trim()}
+
+---
+
+## PM Draft Specification (JSON Input)
+
+\`\`\`json
+${jsonBlock}
+\`\`\`
+`
 }
 
 export const compileSpec = ({ admin, business, flow, blocks }) => {
