@@ -16,6 +16,11 @@ const tryParseJson = (text) => {
   }
 }
 
+export const makeContactRow = () => ({ id: makeId(), name: '', email: '', phone: '', jobTitle: '' })
+
+export const hasContactContent = (contact) =>
+  [contact.name, contact.email, contact.phone, contact.jobTitle].some((v) => v?.trim())
+
 export const makeMappingRow = () => ({
   id: makeId(),
   sourceField: '',
@@ -25,7 +30,13 @@ export const makeMappingRow = () => ({
   notes: '',
 })
 
+export const makeHeaderRow = () => ({ id: makeId(), key: '', value: '' })
+
 export const makeTestRow = () => ({ id: makeId(), key: '', value: '' })
+
+export const makeTableColumn = () => ({ id: makeId(), label: '' })
+
+export const makeTableRow = () => ({ id: makeId(), cells: {} })
 
 export const makeBlock = (type) => {
   const base = { id: makeId(), type }
@@ -35,6 +46,9 @@ export const makeBlock = (type) => {
         ...base,
         source: '',
         destination: '',
+        endpoint: '',
+        method: 'GET',
+        headers: [],
         requestPayload: '',
         responsePayload: '',
         mapping: [makeMappingRow()],
@@ -43,6 +57,13 @@ export const makeBlock = (type) => {
       return { ...base, authType: 'None', fallback: '' }
     case 'testData':
       return { ...base, rows: [makeTestRow()] }
+    case 'table':
+      return {
+        ...base,
+        name: '',
+        columns: [makeTableColumn(), makeTableColumn()],
+        rows: [makeTableRow()],
+      }
     default:
       return base
   }
@@ -60,8 +81,11 @@ export const compileSpec = ({ admin, business, flow, blocks }) => {
     administrative: {
       clientName: admin.clientName,
       projectManager: admin.pmName,
-      contacts: admin.contacts,
+      contacts: admin.contacts
+        .filter(hasContactContent)
+        .map(({ name, email, phone, jobTitle }) => ({ name, email, phone, jobTitle })),
       departmentCreated: admin.departmentCreated,
+      ...(admin.departmentCreated && { departmentId: admin.departmentId }),
     },
     businessNeed: {
       businessGoal: business.goal,
@@ -87,6 +111,11 @@ export const compileSpec = ({ admin, business, flow, blocks }) => {
             sourceSystem: block.source,
             destinationSystem: block.destination,
             isThirdParty: thirdParty,
+            endpoint: block.endpoint,
+            method: block.method,
+            headers: block.headers
+              .filter((h) => h.key.trim() || h.value.trim())
+              .map((h) => ({ key: h.key, value: h.value })),
             ...(thirdParty && {
               requestPayload: tryParseJson(block.requestPayload),
               responsePayload: tryParseJson(block.responsePayload),
@@ -115,6 +144,21 @@ export const compileSpec = ({ admin, business, flow, blocks }) => {
               .filter((row) => row.key.trim() || row.value.trim())
               .map((row) => ({ key: row.key, value: row.value })),
           }
+        case 'table': {
+          const columnLabels = block.columns.map((col, i) => col.label.trim() || `עמודה ${i + 1}`)
+          return {
+            type: 'dynamicTable',
+            name: block.name,
+            columns: columnLabels,
+            rows: block.rows
+              .filter((row) => block.columns.some((col) => (row.cells[col.id] ?? '').trim()))
+              .map((row) =>
+                Object.fromEntries(
+                  block.columns.map((col, i) => [columnLabels[i], row.cells[col.id] ?? '']),
+                ),
+              ),
+          }
+        }
         default:
           return { type: block.type }
       }

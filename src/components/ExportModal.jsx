@@ -36,11 +36,14 @@ export default function ExportModal({ spec, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
-      <div className="animate-fade absolute inset-0 bg-ink/40 backdrop-blur-[3px]" onClick={onClose} />
-      <div className="animate-pop relative flex max-h-full w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl shadow-stone-900/25">
-        <header className="flex items-center justify-between gap-3 border-b border-stone-100 px-6 py-4">
+      <div
+        className="animate-fade absolute inset-0 bg-stone-950/40 backdrop-blur-[3px] dark:bg-stone-950/60"
+        onClick={onClose}
+      />
+      <div className="animate-pop relative flex max-h-full w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl shadow-stone-900/25 dark:bg-stone-900 dark:ring-1 dark:ring-stone-700/60">
+        <header className="flex items-center justify-between gap-3 border-b border-stone-100 px-6 py-4 dark:border-stone-800">
           <div className="flex items-center gap-3">
-            <span className="flex size-9 items-center justify-center rounded-xl bg-teal-700/8 text-teal-700">
+            <span className="flex size-9 items-center justify-center rounded-xl bg-teal-700/8 text-teal-700 dark:bg-teal-400/10 dark:text-teal-300">
               <Sparkles className="size-[18px]" />
             </span>
             <h2 className="font-display text-[19px] font-bold text-ink">האפיון מוכן</h2>
@@ -49,26 +52,26 @@ export default function ExportModal({ spec, onClose }) {
             type="button"
             aria-label="סגירה"
             onClick={onClose}
-            className="rounded-lg p-2 text-stone-400 transition-colors hover:bg-stone-100 hover:text-ink"
+            className="rounded-lg p-2 text-stone-400 transition-colors hover:bg-stone-100 hover:text-ink dark:text-stone-500 dark:hover:bg-stone-800"
           >
             <X className="size-4.5" />
           </button>
         </header>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
-          <p className="mb-4 text-[14.5px] leading-relaxed text-stone-600">
+          <p className="mb-4 text-[14.5px] leading-relaxed text-stone-600 dark:text-stone-300">
             השתמשו ב-JSON הזה יחד עם ה-<b className="text-ink">Master Prompt</b> שלנו כדי לייצר את
             האפיון המלא בכלי ה-AI שלכם:
           </p>
           <pre
             dir="ltr"
-            className="code-scroll max-h-[46vh] overflow-auto rounded-xl bg-[#161412] p-5 text-left"
+            className="code-scroll max-h-[46vh] overflow-auto rounded-xl bg-[#161412] p-5 text-left dark:ring-1 dark:ring-stone-700/60"
           >
             <code className="font-mono text-[12.5px] leading-[1.75] text-stone-200">{text}</code>
           </pre>
         </div>
 
-        <footer className="flex items-center justify-between gap-3 border-t border-stone-100 bg-stone-50/60 px-6 py-4">
+        <footer className="flex items-center justify-between gap-3 border-t border-stone-100 bg-stone-50/60 px-6 py-4 dark:border-stone-800 dark:bg-stone-950/40">
           <button
             type="button"
             onClick={copy}
@@ -84,7 +87,7 @@ export default function ExportModal({ spec, onClose }) {
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl px-4 py-2.5 text-[14px] font-semibold text-stone-500 transition-colors hover:bg-stone-100 hover:text-ink"
+            className="rounded-xl px-4 py-2.5 text-[14px] font-semibold text-stone-500 transition-colors hover:bg-stone-100 hover:text-ink dark:text-stone-400 dark:hover:bg-stone-800"
           >
             סגירה
           </button>

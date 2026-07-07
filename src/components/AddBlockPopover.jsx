@@ -29,8 +29,8 @@ export default function AddBlockPopover({ onAdd }) {
         onClick={() => setOpen((o) => !o)}
         className={`flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed py-5 text-[15px] font-semibold transition-all duration-200 ${
           open
-            ? "border-teal-600/50 bg-teal-50/40 text-teal-700"
-            : "border-stone-200 text-stone-400 hover:border-teal-600/40 hover:bg-teal-50/30 hover:text-teal-700"
+            ? "border-teal-600/50 bg-teal-50/40 text-teal-700 dark:border-teal-500/50 dark:bg-teal-500/10 dark:text-teal-300"
+            : "border-stone-200 text-stone-400 hover:border-teal-600/40 hover:bg-teal-50/30 hover:text-teal-700 dark:border-stone-700 dark:text-stone-500 dark:hover:border-teal-500/40 dark:hover:bg-teal-500/5 dark:hover:text-teal-400"
         }`}
       >
         <Plus
@@ -40,7 +40,7 @@ export default function AddBlockPopover({ onAdd }) {
       </button>
 
       {open && (
-        <div className="animate-pop absolute inset-x-0 bottom-full z-50 mb-2 origin-bottom rounded-2xl border-1 border-teal-600 bg-stone-100 p-1.5 shadow-xl shadow-stone-900/10">
+        <div className="animate-pop absolute inset-x-0 bottom-full z-50 mb-2 origin-bottom rounded-2xl border-1 border-teal-600 bg-stone-100 p-1.5 shadow-xl shadow-stone-900/10 dark:border-teal-500/60 dark:bg-stone-800 dark:shadow-black/40">
           {Object.entries(BLOCK_META).map(([type, meta]) => {
             const Icon = meta.icon;
             return (
@@ -51,11 +51,11 @@ export default function AddBlockPopover({ onAdd }) {
                   onAdd(type);
                   setOpen(false);
                 }}
-                className="flex w-full items-center gap-3.5 rounded-xl px-3.5 py-3 text-start transition-colors duration-100 hover:bg-stone-50"
+                className="flex w-full items-center gap-3.5 rounded-xl px-3.5 py-3 text-start transition-colors duration-100 hover:bg-stone-50 dark:hover:bg-stone-700/50"
               >
                 <span
-                  className="flex size-10 shrink-0 items-center justify-center rounded-xl"
-                  style={{ background: meta.tint, color: meta.accent }}
+                  className="flex size-10 shrink-0 items-center justify-center rounded-xl text-(--accent) dark:text-(--accent-dark)"
+                  style={{ background: meta.tint, "--accent": meta.accent, "--accent-dark": meta.accentDark }}
                 >
                   <Icon className="size-5" />
                 </span>
@@ -63,7 +63,7 @@ export default function AddBlockPopover({ onAdd }) {
                   <span className="block text-[14.5px] font-bold text-ink">
                     {meta.title}
                   </span>
-                  <span className="block text-[12.5px] text-stone-500">
+                  <span className="block text-[12.5px] text-stone-500 dark:text-stone-400">
                     {meta.subtitle}
                   </span>
                 </span>
