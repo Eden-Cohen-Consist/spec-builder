@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Sparkles, AlertTriangle, RotateCcw, Check, CloudUpload, Sun, Moon } from 'lucide-react'
+import { Sparkles, AlertTriangle, RotateCcw, Check, CheckCircle2, CloudUpload, Sun, Moon, FileText } from 'lucide-react'
 import AdminSection from './components/AdminSection.jsx'
 import BusinessSection from './components/BusinessSection.jsx'
 import FlowBuilder from './components/FlowBuilder.jsx'
@@ -10,6 +10,7 @@ import TestDataBlock from './components/TestDataBlock.jsx'
 import TableBlock from './components/TableBlock.jsx'
 import AddBlockPopover from './components/AddBlockPopover.jsx'
 import ExportModal from './components/ExportModal.jsx'
+import MarkdownToWordModal from './components/MarkdownToWordModal.jsx'
 import { makeId, makeBlock, makeContactRow, makeTriggerRow, hasContactContent, isThirdParty, compileSpec } from './lib.js'
 
 const DRAFT_KEY = 'glassix-spec-builder:draft:v1'
@@ -107,6 +108,7 @@ export default function App() {
   const [adminInvalid, setAdminInvalid] = useState(false)
   const [toast, setToast] = useState(null)
   const [spec, setSpec] = useState(null)
+  const [wordModalOpen, setWordModalOpen] = useState(false)
   const [saveState, setSaveState] = useState('idle')
   const [dark, setDark] = useState(() => document.documentElement.classList.contains('dark'))
 
@@ -171,7 +173,7 @@ export default function App() {
     )
     if (badContacts) {
       setAdminInvalid(true)
-      setToast('נא להשלים אנשי קשר — שם חובה, וכן אימייל או טלפון')
+      setToast({ message: 'נא להשלים אנשי קשר — שם חובה, וכן אימייל או טלפון', tone: 'error' })
       document.getElementById('section-admin')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       return
     }
@@ -183,7 +185,7 @@ export default function App() {
     )
     if (offenders.length > 0) {
       setInvalidIds(new Set(offenders.map((b) => b.id)))
-      setToast('נא למלא Request/Response JSON Payloads עבור אינטגרציות צד שלישי')
+      setToast({ message: 'נא למלא Request/Response JSON Payloads עבור אינטגרציות צד שלישי', tone: 'error' })
       document
         .getElementById(`block-${offenders[0].id}`)
         ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -259,6 +261,15 @@ export default function App() {
             >
               <RotateCcw className="size-4" />
             </button>
+            <button
+              type="button"
+              title="המרת אפיון AI ל-Word"
+              aria-label="המרת אפיון AI ל-Word"
+              onClick={() => setWordModalOpen(true)}
+              className="rounded-lg p-2 text-stone-400 transition-colors hover:bg-stone-100 hover:text-ink dark:text-stone-500 dark:hover:bg-stone-800"
+            >
+              <FileText className="size-4" />
+            </button>
           </div>
         </div>
       </header>
@@ -325,14 +336,34 @@ export default function App() {
 
       {toast && (
         <div className="pointer-events-none fixed inset-x-0 bottom-24 z-50 flex justify-center px-4">
-          <div className="animate-toast pointer-events-auto flex items-center gap-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-[14px] font-semibold text-red-700 shadow-lg shadow-red-900/10 dark:border-red-900/60 dark:bg-red-950/90 dark:text-red-300">
-            <AlertTriangle className="size-4 shrink-0" />
-            {toast}
+          <div
+            className={`animate-toast pointer-events-auto flex items-center gap-2.5 rounded-xl border px-4 py-3 text-[14px] font-semibold shadow-lg ${
+              toast.tone === 'success'
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-700 shadow-emerald-900/10 dark:border-emerald-900/60 dark:bg-emerald-950/90 dark:text-emerald-300'
+                : 'border-red-200 bg-red-50 text-red-700 shadow-red-900/10 dark:border-red-900/60 dark:bg-red-950/90 dark:text-red-300'
+            }`}
+          >
+            {toast.tone === 'success' ? (
+              <CheckCircle2 className="size-4 shrink-0" />
+            ) : (
+              <AlertTriangle className="size-4 shrink-0" />
+            )}
+            {toast.message}
           </div>
         </div>
       )}
 
       {spec && <ExportModal spec={spec} onClose={() => setSpec(null)} />}
+
+      {wordModalOpen && (
+        <MarkdownToWordModal
+          onClose={() => setWordModalOpen(false)}
+          onSuccess={() => {
+            setWordModalOpen(false)
+            setToast({ message: 'הועתק בהצלחה! הדביקו ישירות ב-Word או ב-Google Docs', tone: 'success' })
+          }}
+        />
+      )}
     </div>
   )
 }

@@ -1,3 +1,4 @@
+import { marked } from 'marked'
 import { INTERNAL_SYSTEMS } from './constants.js'
 import AI_REVIEW_PROMPT from './prompts/ai-review.md?raw'
 
@@ -151,6 +152,17 @@ export const parseCurl = (input) => {
     /* not JSON — keep raw */
   }
   return result
+}
+
+// Convert AI-generated Markdown to Word/Docs-friendly HTML: RTL wrapper + inline
+// table borders, since Word ignores external CSS when pasting from the clipboard
+export const markdownToWordHtml = (markdown) => {
+  const body = marked.parse(markdown, { gfm: true })
+  const styled = body
+    .replace(/<table>/g, '<table dir="rtl" style="border-collapse:collapse;">')
+    .replace(/<th([ >])/g, '<th style="border:1px solid #999;background:#f2f2f2;padding:5px 10px;text-align:right;"$1')
+    .replace(/<td([ >])/g, '<td style="border:1px solid #999;padding:5px 10px;"$1')
+  return `<div dir="rtl" style="font-family:Arial,sans-serif;">${styled}</div>`
 }
 
 export const makeBlock = (type) => {
