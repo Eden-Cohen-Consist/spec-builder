@@ -5,12 +5,12 @@ import BusinessSection from './components/BusinessSection.jsx'
 import FlowBuilder from './components/FlowBuilder.jsx'
 import DynamicBlock from './components/DynamicBlock.jsx'
 import HttpBlock from './components/HttpBlock.jsx'
-import SecurityBlock from './components/SecurityBlock.jsx'
+import FreeTextBlock from './components/FreeTextBlock.jsx'
 import TestDataBlock from './components/TestDataBlock.jsx'
 import TableBlock from './components/TableBlock.jsx'
 import AddBlockPopover from './components/AddBlockPopover.jsx'
 import ExportModal from './components/ExportModal.jsx'
-import { makeId, makeBlock, makeContactRow, hasContactContent, isThirdParty, compileSpec } from './lib.js'
+import { makeId, makeBlock, makeContactRow, makeTriggerRow, hasContactContent, isThirdParty, compileSpec } from './lib.js'
 
 const DRAFT_KEY = 'glassix-spec-builder:draft:v1'
 const THEME_KEY = 'glassix-spec-builder:theme'
@@ -22,7 +22,7 @@ const defaultAdmin = () => ({
   departmentCreated: false,
   departmentId: '',
 })
-const DEFAULT_BUSINESS = { goal: '', trigger: '' }
+const defaultBusiness = () => ({ goal: '', triggers: [makeTriggerRow()] })
 const defaultFlow = () => [{ id: makeId(), kind: 'step', text: '' }]
 
 // Older drafts stored contacts as free text and http blocks without endpoint/method/headers
@@ -40,10 +40,54 @@ const migrateAdmin = (saved) => {
   return admin
 }
 
-const migrateBlocks = (blocks) =>
-  blocks.map((block) =>
-    block.type === 'http' ? { endpoint: '', method: 'GET', headers: [], ...block } : block,
-  )
+// Older drafts stored a single trigger string instead of a triggers list
+const migrateBusiness = (saved) => {
+  if (!saved) return defaultBusiness()
+  const goal = saved.goal ?? ''
+  if (Array.isArray(saved.triggers) && saved.triggers.length > 0) return { goal, triggers: saved.triggers }
+  return {
+    goal,
+    triggers: [{ ...makeTriggerRow(), text: typeof saved.trigger === 'string' ? saved.trigger : '' }],
+  }
+}
+
+const foldSecurityIntoHttp = (httpBlock, security) => {
+  if (security.authType && security.authType !== 'None') httpBlock.authType = security.authType
+  if (security.fallback?.trim()) {
+    httpBlock.fallback = [httpBlock.fallback, security.fallback].filter((t) => t?.trim()).join('\n')
+  }
+}
+
+// Security is now part of the http block — fold legacy standalone security blocks into
+// their nearest http block; orphans with content become a free-text block so nothing is lost
+const migrateBlocks = (blocks) => {
+  const migrated = []
+  const pending = []
+  for (const block of blocks) {
+    if (block.type === 'http') {
+      const httpBlock = { endpoint: '', method: 'GET', headers: [], authType: 'None', fallback: '', ...block }
+      for (const security of pending.splice(0)) foldSecurityIntoHttp(httpBlock, security)
+      migrated.push(httpBlock)
+    } else if (block.type === 'security') {
+      const target = migrated.findLast((b) => b.type === 'http')
+      if (target) foldSecurityIntoHttp(target, block)
+      else pending.push(block)
+    } else {
+      migrated.push(block)
+    }
+  }
+  for (const security of pending) {
+    if (!security.fallback?.trim() && (!security.authType || security.authType === 'None')) continue
+    migrated.push({
+      ...makeBlock('freeText'),
+      title: 'אבטחה וטיפול בשגיאות',
+      text: [`Authentication: ${security.authType ?? 'None'}`, security.fallback ?? '']
+        .filter((t) => t.trim())
+        .join('\n'),
+    })
+  }
+  return migrated
+}
 
 const loadDraft = () => {
   try {
@@ -56,7 +100,7 @@ const draft = loadDraft()
 
 export default function App() {
   const [admin, setAdmin] = useState(() => (draft?.admin ? migrateAdmin(draft.admin) : defaultAdmin()))
-  const [business, setBusiness] = useState(draft?.business ?? DEFAULT_BUSINESS)
+  const [business, setBusiness] = useState(() => migrateBusiness(draft?.business))
   const [flow, setFlow] = useState(draft?.flow?.length ? draft.flow : defaultFlow())
   const [blocks, setBlocks] = useState(() => migrateBlocks(draft?.blocks ?? []))
   const [invalidIds, setInvalidIds] = useState(() => new Set())
@@ -113,7 +157,7 @@ export default function App() {
     if (!window.confirm('לאפס את הטיוטה? כל הנתונים שהוזנו יימחקו.')) return
     localStorage.removeItem(DRAFT_KEY)
     setAdmin(defaultAdmin())
-    setBusiness(DEFAULT_BUSINESS)
+    setBusiness(defaultBusiness())
     setFlow(defaultFlow())
     setBlocks([])
     setInvalidIds(new Set())
@@ -158,8 +202,8 @@ export default function App() {
             onUpdate={(patch) => updateBlock(block.id, patch)}
           />
         )
-      case 'security':
-        return <SecurityBlock block={block} onUpdate={(patch) => updateBlock(block.id, patch)} />
+      case 'freeText':
+        return <FreeTextBlock block={block} onUpdate={(patch) => updateBlock(block.id, patch)} />
       case 'testData':
         return <TestDataBlock block={block} onUpdate={(patch) => updateBlock(block.id, patch)} />
       case 'table':
@@ -259,7 +303,7 @@ export default function App() {
             <AddBlockPopover onAdd={addBlock} />
             {blocks.length === 0 && (
               <p className="mt-3 text-center text-[13px] text-stone-400 dark:text-stone-500">
-                עדיין אין בלוקים — הוסיפו אינטגרציה, אבטחה, נתוני בדיקה או טבלה לפי הצורך
+                עדיין אין בלוקים — הוסיפו אינטגרציה, נתוני בדיקה, טבלה או טקסט חופשי לפי הצורך
               </p>
             )}
           </div>

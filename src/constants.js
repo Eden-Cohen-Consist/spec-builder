@@ -1,4 +1,4 @@
-import { ArrowLeftRight, ShieldCheck, FlaskConical, Table } from 'lucide-react'
+import { ArrowLeftRight, FlaskConical, Table, FileText } from 'lucide-react'
 
 // Destination systems that are considered "internal" — anything else is a 3rd party
 export const INTERNAL_SYSTEMS = ['glassix', 'consist']
@@ -12,16 +12,16 @@ export const HTTP_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']
 export const BLOCK_META = {
   http: {
     title: 'HTTP Request / אינטגרציה',
-    subtitle: 'קריאת API בין מערכות, כולל מיפוי שדות',
+    subtitle: 'קריאת API בין מערכות — מיפוי שדות, אימות וטיפול בשגיאות',
     icon: ArrowLeftRight,
     accent: '#0f766e',
     accentDark: '#2dd4bf',
     tint: 'rgba(15, 118, 110, 0.08)',
   },
-  security: {
-    title: 'אבטחה וטיפול בשגיאות',
-    subtitle: 'שיטת אימות והתנהגות במקרי כשל',
-    icon: ShieldCheck,
+  freeText: {
+    title: 'טקסט חופשי',
+    subtitle: 'כותרת ותיאור פתוח — לכל מה שלא נכנס בתבנית',
+    icon: FileText,
     accent: '#1d4ed8',
     accentDark: '#60a5fa',
     tint: 'rgba(29, 78, 216, 0.08)',
