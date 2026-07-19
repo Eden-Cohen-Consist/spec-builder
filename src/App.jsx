@@ -329,7 +329,7 @@ export default function App() {
             className="group pointer-events-auto inline-flex items-center gap-2.5 rounded-2xl bg-teal-700 px-8 py-3.5 text-[16px] font-bold text-white shadow-lg shadow-teal-700/25 transition-all duration-200 hover:-translate-y-0.5 hover:bg-teal-800 hover:shadow-xl hover:shadow-teal-700/30 active:translate-y-0 active:scale-[0.99]"
           >
             <Sparkles className="size-[18px] transition-transform duration-200 group-hover:rotate-12" />
-            ייצר אפיון למפתח
+            צור פרומפט לאפיון
           </button>
         </div>
       </footer>
