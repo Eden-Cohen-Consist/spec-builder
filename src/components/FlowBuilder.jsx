@@ -58,7 +58,7 @@ function StepNode({ node, number, deletable, onUpdate, onDelete }) {
 
 const PATH_LABELS = ['מסלול א׳', 'מסלול ב׳']
 
-function BranchNode({ node, onUpdate, onDelete }) {
+function BranchNode({ node, number, onUpdate, onDelete }) {
   const setPath = (index, patch) =>
     onUpdate({ paths: node.paths.map((path, i) => (i === index ? { ...path, ...patch } : path)) })
 
@@ -67,7 +67,7 @@ function BranchNode({ node, onUpdate, onDelete }) {
       <div className="relative flex items-center justify-center">
         <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200/80 bg-amber-50 px-3 py-1 text-[12px] font-bold text-amber-800 dark:border-amber-500/25 dark:bg-amber-950/40 dark:text-amber-400">
           <Split className="size-3.5" />
-          הסתעפות
+          הסתעפות {number}
         </span>
         <DeleteButton
           aria-label="מחיקת הסתעפות"
@@ -126,6 +126,7 @@ export default function FlowBuilder({ flow, onChange, delay }) {
   const removeNode = (id) => onChange(flow.filter((node) => node.id !== id))
 
   let stepCounter = 0
+  let branchCounter = 0
 
   return (
     <LockedSection number="3" title="תהליך לוגי — מבט על" subtitle="השלבים העסקיים של התהליך, מהטריגר ועד הסוף" delay={delay}>
@@ -133,6 +134,7 @@ export default function FlowBuilder({ flow, onChange, delay }) {
         {flow.map((node, index) => {
           const isStep = node.kind === 'step'
           if (isStep) stepCounter += 1
+          else branchCounter += 1
           return (
             <div key={node.id}>
               {index > 0 && <Connector />}
@@ -147,6 +149,7 @@ export default function FlowBuilder({ flow, onChange, delay }) {
               ) : (
                 <BranchNode
                   node={node}
+                  number={branchCounter}
                   onUpdate={(patch) => updateNode(node.id, patch)}
                   onDelete={() => removeNode(node.id)}
                 />

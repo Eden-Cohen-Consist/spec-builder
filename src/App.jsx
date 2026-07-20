@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Sparkles, AlertTriangle, RotateCcw, Check, CheckCircle2, CloudUpload, Sun, Moon, FileText } from 'lucide-react'
+import { Sparkles, AlertTriangle, RotateCcw, Check, CheckCircle2, CloudUpload, Sun, Moon, FileText, Download, Upload } from 'lucide-react'
 import AdminSection from './components/AdminSection.jsx'
 import BusinessSection from './components/BusinessSection.jsx'
 import FlowBuilder from './components/FlowBuilder.jsx'
@@ -11,7 +11,8 @@ import TableBlock from './components/TableBlock.jsx'
 import AddBlockPopover from './components/AddBlockPopover.jsx'
 import ExportModal from './components/ExportModal.jsx'
 import MarkdownToWordModal from './components/MarkdownToWordModal.jsx'
-import { makeId, makeBlock, makeContactRow, makeTriggerRow, hasContactContent, isThirdParty, compileSpec } from './lib.js'
+import ImportDraftModal from './components/ImportDraftModal.jsx'
+import { makeId, makeBlock, makeContactRow, makeTriggerRow, hasContactContent, isThirdParty, compileSpec, downloadDraftFile, getFlowNodeLabels } from './lib.js'
 
 const DRAFT_KEY = 'glassix-spec-builder:draft:v1'
 const THEME_KEY = 'glassix-spec-builder:theme'
@@ -109,6 +110,7 @@ export default function App() {
   const [toast, setToast] = useState(null)
   const [spec, setSpec] = useState(null)
   const [wordModalOpen, setWordModalOpen] = useState(false)
+  const [importModalOpen, setImportModalOpen] = useState(false)
   const [saveState, setSaveState] = useState('idle')
   const [dark, setDark] = useState(() => document.documentElement.classList.contains('dark'))
 
@@ -155,6 +157,19 @@ export default function App() {
 
   const deleteBlock = (id) => setBlocks((prev) => prev.filter((b) => b.id !== id))
 
+  // Update flow and clear block links that pointed at removed nodes
+  const changeFlow = (nextFlow) => {
+    const nextIds = new Set(nextFlow.map((node) => node.id))
+    setFlow(nextFlow)
+    setBlocks((prev) =>
+      prev.map((block) =>
+        block.linkedFlowNodeId && !nextIds.has(block.linkedFlowNodeId)
+          ? { ...block, linkedFlowNodeId: '' }
+          : block,
+      ),
+    )
+  }
+
   const resetDraft = () => {
     if (!window.confirm('לאפס את הטיוטה? כל הנתונים שהוזנו יימחקו.')) return
     localStorage.removeItem(DRAFT_KEY)
@@ -164,6 +179,23 @@ export default function App() {
     setBlocks([])
     setInvalidIds(new Set())
     setAdminInvalid(false)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const exportDraft = () => {
+    downloadDraftFile({ admin, business, flow, blocks })
+    setToast({ message: 'הטופס יוצא לקובץ JSON', tone: 'success' })
+  }
+
+  const applyImportedDraft = (imported) => {
+    setAdmin(migrateAdmin(imported.admin))
+    setBusiness(migrateBusiness(imported.business))
+    setFlow(imported.flow.length ? imported.flow : defaultFlow())
+    setBlocks(migrateBlocks(imported.blocks))
+    setInvalidIds(new Set())
+    setAdminInvalid(false)
+    setImportModalOpen(false)
+    setToast({ message: 'הטופס יובא בהצלחה', tone: 'success' })
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -215,13 +247,15 @@ export default function App() {
     }
   }
 
+  const flowOptions = getFlowNodeLabels(flow)
+
   return (
     <div className="min-h-screen pb-40">
       <header className="sticky top-0 z-40 border-b border-stone-200/70 bg-paper/85 backdrop-blur-md dark:border-stone-800/80">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-5 py-3">
           <div className="flex items-center gap-3">
-            <span className="flex size-8 items-center justify-center rounded-lg bg-teal-700 font-display text-[15px] font-black text-white shadow-sm shadow-teal-700/30">
-              א
+            <span className="flex size-8 items-center justify-center rounded-lg bg-teal-700 text-white shadow-sm shadow-teal-700/30">
+              <FileText className="size-4" />
             </span>
             <div>
               <div className="font-display text-[17px] font-bold leading-none text-ink">בונה אפיונים</div>
@@ -261,15 +295,6 @@ export default function App() {
             >
               <RotateCcw className="size-4" />
             </button>
-            <button
-              type="button"
-              title="המרת אפיון AI ל-Word"
-              aria-label="המרת אפיון AI ל-Word"
-              onClick={() => setWordModalOpen(true)}
-              className="rounded-lg p-2 text-stone-400 transition-colors hover:bg-stone-100 hover:text-ink dark:text-stone-500 dark:hover:bg-stone-800"
-            >
-              <FileText className="size-4" />
-            </button>
           </div>
         </div>
       </header>
@@ -280,12 +305,38 @@ export default function App() {
           <p className="mt-2 text-[15px] text-stone-500 dark:text-stone-400">
             מלאו את הסעיפים הקבועים, הוסיפו בלוקים טכניים — וקבלו JSON מסודר להעברה למפתח.
           </p>
+          <div className="mt-5 flex flex-wrap items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => setWordModalOpen(true)}
+              className="inline-flex items-center gap-2 rounded-xl border border-teal-700/25 bg-teal-50 px-4 py-2.5 text-[14px] font-semibold text-teal-800 transition-colors hover:border-teal-700/40 hover:bg-teal-100 dark:border-teal-500/30 dark:bg-teal-500/10 dark:text-teal-300 dark:hover:border-teal-500/50 dark:hover:bg-teal-500/15"
+            >
+              <FileText className="size-4 shrink-0" />
+              המרת אפיון AI ל-Word
+            </button>
+            <button
+              type="button"
+              onClick={exportDraft}
+              className="inline-flex items-center gap-2 rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-[14px] font-semibold text-stone-700 transition-colors hover:border-stone-300 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200 dark:hover:border-stone-600 dark:hover:bg-stone-800"
+            >
+              <Download className="size-4 shrink-0" />
+              ייצוא טופס
+            </button>
+            <button
+              type="button"
+              onClick={() => setImportModalOpen(true)}
+              className="inline-flex items-center gap-2 rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-[14px] font-semibold text-stone-700 transition-colors hover:border-stone-300 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-200 dark:hover:border-stone-600 dark:hover:bg-stone-800"
+            >
+              <Upload className="size-4 shrink-0" />
+              ייבוא טופס
+            </button>
+          </div>
         </div>
 
         <div className="space-y-5">
           <AdminSection value={admin} onChange={changeAdmin} invalid={adminInvalid} delay={60} />
           <BusinessSection value={business} onChange={setBusiness} delay={120} />
-          <FlowBuilder flow={flow} onChange={setFlow} delay={180} />
+          <FlowBuilder flow={flow} onChange={changeFlow} delay={180} />
         </div>
 
         <div className="animate-rise flex items-center gap-3 pb-4 pt-9" style={{ animationDelay: '240ms' }}>
@@ -304,13 +355,15 @@ export default function App() {
               key={block.id}
               block={block}
               invalid={invalidIds.has(block.id)}
+              flowOptions={flowOptions}
+              onLinkChange={(linkedFlowNodeId) => updateBlock(block.id, { linkedFlowNodeId })}
               onDelete={() => deleteBlock(block.id)}
             >
               {renderBlockBody(block)}
             </DynamicBlock>
           ))}
 
-          <div className="animate-rise relative z-50" style={{ animationDelay: '300ms' }}>
+          <div className="animate-rise relative" style={{ animationDelay: '300ms' }}>
             <AddBlockPopover onAdd={addBlock} />
             {blocks.length === 0 && (
               <p className="mt-3 text-center text-[13px] text-stone-400 dark:text-stone-500">
@@ -363,6 +416,10 @@ export default function App() {
             setToast({ message: 'הועתק בהצלחה! הדביקו ישירות ב-Word או ב-Google Docs', tone: 'success' })
           }}
         />
+      )}
+
+      {importModalOpen && (
+        <ImportDraftModal onClose={() => setImportModalOpen(false)} onImport={applyImportedDraft} />
       )}
     </div>
   )

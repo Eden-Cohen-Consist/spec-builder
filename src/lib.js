@@ -166,7 +166,7 @@ export const markdownToWordHtml = (markdown) => {
 }
 
 export const makeBlock = (type) => {
-  const base = { id: makeId(), type }
+  const base = { id: makeId(), type, linkedFlowNodeId: '' }
   switch (type) {
     case 'http':
       return {
@@ -198,6 +198,28 @@ export const makeBlock = (type) => {
   }
 }
 
+// Numbered labels for flow nodes: שלב 1… and הסתעפות 1… (separate counters)
+export const getFlowNodeLabels = (flow) => {
+  let stepCounter = 0
+  let branchCounter = 0
+  return flow.map((node) => {
+    if (node.kind === 'step') {
+      stepCounter += 1
+      return { id: node.id, kind: 'step', label: `שלב ${stepCounter}` }
+    }
+    branchCounter += 1
+    return { id: node.id, kind: 'branch', label: `הסתעפות ${branchCounter}` }
+  })
+}
+
+const resolveLinkedFlow = (block, labelById) => {
+  const id = block.linkedFlowNodeId
+  if (!id) return null
+  const entry = labelById.get(id)
+  if (!entry) return null
+  return { nodeId: entry.id, kind: entry.kind, label: entry.label }
+}
+
 export const buildAiExportText = (spec) => {
   const jsonBlock = JSON.stringify(spec, null, 2)
   return `${AI_REVIEW_PROMPT.trim()}
@@ -212,8 +234,89 @@ ${jsonBlock}
 `
 }
 
+const DRAFT_BLOCK_TYPES = new Set(['http', 'freeText', 'testData', 'table', 'security'])
+
+// Download the editable form draft (same shape as localStorage) as a .json file
+export const downloadDraftFile = ({ admin, business, flow, blocks }) => {
+  const payload = JSON.stringify({ admin, business, flow, blocks }, null, 2)
+  const blob = new Blob([payload], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const stamp = new Date().toISOString().slice(0, 10)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `spec-draft-${stamp}.json`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+// Parse + validate a pasted/uploaded form draft. Never returns partial data on failure.
+export const parseDraftJson = (text) => {
+  if (!text?.trim()) {
+    return { ok: false, error: 'הדביקו JSON של טיוטת טופס לפני הייבוא' }
+  }
+
+  let data
+  try {
+    data = JSON.parse(text)
+  } catch {
+    return { ok: false, error: 'JSON לא תקין — בדקו סוגריים, פסיקים ומרכאות' }
+  }
+
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    return { ok: false, error: 'הקובץ חייב להיות אובייקט JSON של טיוטת טופס' }
+  }
+
+  // Compiled AI export uses different keys — reject so we never half-fill the form
+  if (data.administrative || data.businessNeed || data.logicalFlow || data.technicalBlocks) {
+    return {
+      ok: false,
+      error: 'זה נראה כמו אפיון מיוצא ל-AI, לא טיוטת טופס. ייצאו מחדש עם «ייצוא טופס»',
+    }
+  }
+
+  if (
+    typeof data.admin !== 'object' ||
+    data.admin === null ||
+    Array.isArray(data.admin) ||
+    typeof data.business !== 'object' ||
+    data.business === null ||
+    Array.isArray(data.business) ||
+    !Array.isArray(data.flow) ||
+    !Array.isArray(data.blocks)
+  ) {
+    return {
+      ok: false,
+      error: 'מבנה לא תקין — נדרשים השדות: admin, business, flow, blocks',
+    }
+  }
+
+  for (const node of data.flow) {
+    if (!node || typeof node !== 'object' || (node.kind !== 'step' && node.kind !== 'branch')) {
+      return { ok: false, error: 'מבנה הזרימה (flow) לא תקין' }
+    }
+  }
+
+  for (const block of data.blocks) {
+    if (!block || typeof block !== 'object' || !DRAFT_BLOCK_TYPES.has(block.type)) {
+      return { ok: false, error: 'אחד הבלוקים הטכניים במבנה לא תקין או מסוג לא מוכר' }
+    }
+  }
+
+  return {
+    ok: true,
+    draft: {
+      admin: data.admin,
+      business: data.business,
+      flow: data.flow,
+      blocks: data.blocks,
+    },
+  }
+}
+
 export const compileSpec = ({ admin, business, flow, blocks }) => {
   let stepCounter = 0
+  const flowLabels = getFlowNodeLabels(flow)
+  const labelById = new Map(flowLabels.map((entry) => [entry.id, entry]))
 
   return {
     meta: {
@@ -246,11 +349,13 @@ export const compileSpec = ({ admin, business, flow, blocks }) => {
           },
     ),
     technicalBlocks: blocks.map((block) => {
+      const linkedFlow = resolveLinkedFlow(block, labelById)
       switch (block.type) {
         case 'http': {
           const thirdParty = isThirdParty(block.destination)
           return {
             type: 'httpIntegration',
+            linkedFlow,
             sourceSystem: block.source,
             destinationSystem: block.destination,
             isThirdParty: thirdParty,
@@ -281,12 +386,14 @@ export const compileSpec = ({ admin, business, flow, blocks }) => {
         case 'freeText':
           return {
             type: 'freeText',
+            linkedFlow,
             title: block.title,
             description: block.text,
           }
         case 'testData':
           return {
             type: 'testData',
+            linkedFlow,
             entries: block.rows
               .filter((row) => row.key.trim() || row.value.trim())
               .map((row) => ({ key: row.key, value: row.value })),
@@ -295,6 +402,7 @@ export const compileSpec = ({ admin, business, flow, blocks }) => {
           const columnLabels = block.columns.map((col, i) => col.label.trim() || `עמודה ${i + 1}`)
           return {
             type: 'dynamicTable',
+            linkedFlow,
             name: block.name,
             columns: columnLabels,
             rows: block.rows
@@ -307,7 +415,7 @@ export const compileSpec = ({ admin, business, flow, blocks }) => {
           }
         }
         default:
-          return { type: block.type }
+          return { type: block.type, linkedFlow }
       }
     }),
   }

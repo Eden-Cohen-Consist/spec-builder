@@ -1,9 +1,12 @@
 import { Trash2 } from 'lucide-react'
 import { BLOCK_META } from '../constants.js'
+import { Select } from './ui.jsx'
 
-export default function DynamicBlock({ block, invalid, onDelete, children }) {
+export default function DynamicBlock({ block, invalid, flowOptions, onLinkChange, onDelete, children }) {
   const meta = BLOCK_META[block.type]
   const Icon = meta.icon
+  const linkedId = block.linkedFlowNodeId || ''
+  const linkValue = flowOptions.some((opt) => opt.id === linkedId) ? linkedId : ''
 
   return (
     <section
@@ -20,26 +23,47 @@ export default function DynamicBlock({ block, invalid, onDelete, children }) {
         style={{ background: invalid ? '#dc2626' : meta.accent }}
       />
       <header className="flex items-center justify-between gap-3 px-6 pb-4 pt-5">
-        <div className="flex items-center gap-3.5">
+        <div className="flex min-w-0 items-center gap-3.5">
           <span
             className="flex size-9 shrink-0 items-center justify-center rounded-xl text-(--accent) dark:text-(--accent-dark)"
             style={{ background: meta.tint, '--accent': meta.accent, '--accent-dark': meta.accentDark }}
           >
             <Icon className="size-[18px]" />
           </span>
-          <div>
+          <div className="min-w-0">
             <h3 className="text-[16px] font-bold leading-tight text-ink">{meta.title}</h3>
             <p className="mt-0.5 text-[12.5px] text-stone-500 dark:text-stone-400">{meta.subtitle}</p>
           </div>
         </div>
-        <button
-          type="button"
-          aria-label="מחיקת בלוק"
-          onClick={onDelete}
-          className="rounded-lg p-2 text-stone-300 opacity-0 transition-all duration-150 hover:bg-red-50 hover:text-red-600 focus-visible:opacity-100 group-hover/block:opacity-100 dark:text-stone-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
-        >
-          <Trash2 className="size-4" />
-        </button>
+        <div className="flex shrink-0 items-center gap-2">
+          <label className="block">
+            <span className="mb-1 block whitespace-nowrap text-start text-[11.5px] font-semibold text-stone-500 dark:text-stone-400">
+              קישור לשלב בתהליך
+            </span>
+            <Select
+              aria-label="קישור לשלב בתהליך"
+              value={linkValue}
+              onChange={(e) => onLinkChange(e.target.value)}
+              className="!py-1.5 !pe-8 !text-[13px]"
+              wrapperClassName="w-[7.75rem]"
+            >
+              <option value="">ללא קישור</option>
+              {flowOptions.map((opt) => (
+                <option key={opt.id} value={opt.id}>
+                  {opt.label}
+                </option>
+              ))}
+            </Select>
+          </label>
+          <button
+            type="button"
+            aria-label="מחיקת בלוק"
+            onClick={onDelete}
+            className="self-end rounded-lg p-2 text-stone-300 opacity-0 transition-all duration-150 hover:bg-red-50 hover:text-red-600 focus-visible:opacity-100 group-hover/block:opacity-100 dark:text-stone-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
+          >
+            <Trash2 className="size-4" />
+          </button>
+        </div>
       </header>
       <div className="px-6 pb-6">{children}</div>
     </section>
