@@ -249,8 +249,8 @@ export default function App() {
       <header className="sticky top-0 z-40 border-b border-stone-200/70 bg-paper/85 backdrop-blur-md dark:border-stone-800/80">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-5 py-3">
           <div className="flex items-center gap-3">
-            <span className="flex size-8 items-center justify-center rounded-lg bg-teal-700 font-display text-[15px] font-black text-white shadow-sm shadow-teal-700/30">
-              א
+            <span className="flex size-8 items-center justify-center text-teal-700 dark:text-teal-400">
+              <FileText className="size-5" />
             </span>
             <div>
               <div className="font-display text-[17px] font-bold leading-none text-ink">בונה אפיונים</div>
@@ -290,15 +290,6 @@ export default function App() {
             >
               <RotateCcw className="size-4" />
             </button>
-            <button
-              type="button"
-              title="המרת אפיון AI ל-Word"
-              aria-label="המרת אפיון AI ל-Word"
-              onClick={() => setWordModalOpen(true)}
-              className="rounded-lg p-2 text-stone-400 transition-colors hover:bg-stone-100 hover:text-ink dark:text-stone-500 dark:hover:bg-stone-800"
-            >
-              <FileText className="size-4" />
-            </button>
           </div>
         </div>
       </header>
@@ -309,6 +300,14 @@ export default function App() {
           <p className="mt-2 text-[15px] text-stone-500 dark:text-stone-400">
             מלאו את הסעיפים הקבועים, הוסיפו בלוקים טכניים — וקבלו JSON מסודר להעברה למפתח.
           </p>
+          <button
+            type="button"
+            onClick={() => setWordModalOpen(true)}
+            className="mt-5 inline-flex items-center gap-2 rounded-xl border border-teal-700/25 bg-teal-50 px-4 py-2.5 text-[14px] font-semibold text-teal-800 transition-colors hover:border-teal-700/40 hover:bg-teal-100 dark:border-teal-500/30 dark:bg-teal-500/10 dark:text-teal-300 dark:hover:border-teal-500/50 dark:hover:bg-teal-500/15"
+          >
+            <FileText className="size-4 shrink-0" />
+            המרת אפיון AI ל-Word
+          </button>
         </div>
 
         <div className="space-y-5">
@@ -346,7 +345,7 @@ export default function App() {
             </DynamicBlock>
           ))}
 
-          <div className="animate-rise relative z-50" style={{ animationDelay: '300ms' }}>
+          <div className="animate-rise relative" style={{ animationDelay: '300ms' }}>
             <AddBlockPopover onAdd={addBlock} />
             {blocks.length === 0 && (
               <p className="mt-3 text-center text-[13px] text-stone-400 dark:text-stone-500">

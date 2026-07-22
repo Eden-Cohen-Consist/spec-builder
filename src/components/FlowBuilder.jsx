@@ -167,7 +167,7 @@ function WorkflowRail({ controller, onRequestDelete }) {
 
 function WorkflowHeader({ controller, workflow }) {
   return (
-    <div className="grid gap-3 rounded-xl border border-stone-200 bg-white p-5 dark:border-stone-700 dark:bg-stone-900 lg:grid-cols-[minmax(0,1.35fr)_minmax(180px,0.7fr)_minmax(0,1.45fr)]">
+    <div className="grid gap-3 rounded-xl border border-stone-200 bg-white p-5 dark:border-stone-700 dark:bg-stone-900 lg:grid-cols-2">
       <Field label="שם התהליך">
         <Input
           value={workflow.name}
@@ -187,7 +187,7 @@ function WorkflowHeader({ controller, workflow }) {
           ))}
         </Select>
       </Field>
-      <Field label="תיאור קצר">
+      <Field label="תיאור קצר" className="lg:col-span-2">
         <Textarea
           rows={1}
           value={workflow.description}
