@@ -20,6 +20,7 @@ import {
   Unlink2,
   Workflow,
 } from 'lucide-react'
+import { WORKFLOW_TRIGGER_LABELS } from '../../workflow/index.js'
 
 const NODE_META = {
   START: { label: 'התחלה', icon: Play, tone: 'teal' },
@@ -314,7 +315,9 @@ function DependencyNode({ data }) {
         {invalid && <AlertTriangle className="size-3.5 text-red-500" />}
       </div>
       <div className="mt-2 flex flex-wrap gap-1.5 text-[10.5px] font-semibold text-stone-500 dark:text-stone-400">
-        <span className="rounded-full bg-stone-100 px-2 py-0.5 dark:bg-stone-700">{workflow.triggerType}</span>
+        <span className="rounded-full bg-stone-100 px-2 py-0.5 dark:bg-stone-700">
+          {WORKFLOW_TRIGGER_LABELS[workflow.triggerType] ?? workflow.triggerType}
+        </span>
         <span className="rounded-full bg-stone-100 px-2 py-0.5 dark:bg-stone-700">{workflow.nodes.length} Nodes</span>
       </div>
       <Handle type="source" position={Position.Bottom} className="!size-2.5 !border-2 !border-white !bg-teal-700 dark:!border-stone-800 dark:!bg-teal-400" />

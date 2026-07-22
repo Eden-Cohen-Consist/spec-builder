@@ -1,5 +1,5 @@
 /**
- * @typedef {'MANUAL'|'FORM_SUBMIT'|'WEBHOOK'|'EVENT'|'SCHEDULE'|'CALLED_BY_WORKFLOW'} WorkflowTriggerType
+ * @typedef {'MANUAL'|'FORM_SUBMIT'|'WEBHOOK'|'EVENT'|'SCHEDULE'} WorkflowTriggerType
  * @typedef {'SYNC'|'ASYNC'} WorkflowExecutionMode
  * @typedef {'string'|'number'|'boolean'|'object'|'array'} WorkflowVariableType
  * @typedef {'START'|'ACTION'|'DECISION'|'HTTP_REQUEST'|'CALL_WORKFLOW'|'PARALLEL'|'DELAY'|'END'} WorkflowNodeType
@@ -127,7 +127,6 @@ export const WORKFLOW_TRIGGER_TYPES = Object.freeze([
   'WEBHOOK',
   'EVENT',
   'SCHEDULE',
-  'CALLED_BY_WORKFLOW',
 ])
 
 export const WORKFLOW_EXECUTION_MODES = Object.freeze(['SYNC', 'ASYNC'])
@@ -157,7 +156,6 @@ export const WORKFLOW_TRIGGER_LABELS = Object.freeze({
   WEBHOOK: 'Webhook',
   EVENT: 'אירוע',
   SCHEDULE: 'תזמון',
-  CALLED_BY_WORKFLOW: 'מופעל על ידי תהליך',
 })
 
 export const WORKFLOW_EXECUTION_MODE_LABELS = Object.freeze({ SYNC: 'סינכרוני', ASYNC: 'אסינכרוני' })
@@ -713,27 +711,6 @@ export const buildWorkflowDependencyGraph = (workflows) => {
   return {
     nodes: normalized.map(({ id, name, executionMode, triggerType }) => ({ id, name, executionMode, triggerType })),
     edges,
-  }
-}
-
-/**
- * @param {Workflow[]} workflows
- * @param {string} workflowId
- * @returns {{workflowId: string, incoming: WorkflowDependencyEdge[], outgoing: WorkflowDependencyEdge[], callers: Workflow[], callees: Workflow[]}}
- */
-export const getWorkflowDependencies = (workflows, workflowId) => {
-  const normalized = normalizeWorkflows(workflows)
-  const byId = new Map(normalized.map((workflow) => [workflow.id, workflow]))
-  const graph = buildWorkflowDependencyGraph(normalized)
-  const incoming = graph.edges.filter((edge) => edge.target === workflowId)
-  const outgoing = graph.edges.filter((edge) => edge.source === workflowId)
-  const unique = (items) => [...new Map(items.filter(Boolean).map((item) => [item.id, item])).values()]
-  return {
-    workflowId,
-    incoming,
-    outgoing,
-    callers: unique(incoming.map((edge) => byId.get(edge.source))),
-    callees: unique(outgoing.map((edge) => byId.get(edge.target))),
   }
 }
 

@@ -6,7 +6,6 @@ import {
   createWorkflow,
   createWorkflowConnection,
   duplicateWorkflowData,
-  getWorkflowDependencies as readWorkflowDependencies,
   normalizeWorkflows,
   reconcileCallWorkflowConfig,
   replaceWorkflowVariables,
@@ -555,8 +554,6 @@ export function useWorkflowState(initialOrOptions, technicalBlocks) {
     },
     validateAllWorkflows: (blocksOverride) =>
       validateEveryWorkflow(state.workflows, resolveBlocks(blocksOverride)),
-    getWorkflowDependencies: (workflowId = state.activeWorkflowId) =>
-      readWorkflowDependencies(state.workflows, workflowId),
   }
 }
 

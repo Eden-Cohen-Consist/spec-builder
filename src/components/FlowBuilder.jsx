@@ -166,9 +166,8 @@ function WorkflowRail({ controller, onRequestDelete }) {
 }
 
 function WorkflowHeader({ controller, workflow }) {
-  const callers = controller.getWorkflowDependencies(workflow.id).callers
   return (
-    <div className="grid gap-4 rounded-xl border border-stone-200 bg-white p-5 dark:border-stone-700 dark:bg-stone-900 lg:grid-cols-2">
+    <div className="grid gap-3 rounded-xl border border-stone-200 bg-white p-5 dark:border-stone-700 dark:bg-stone-900 lg:grid-cols-[minmax(0,1.35fr)_minmax(180px,0.7fr)_minmax(0,1.45fr)]">
       <Field label="שם התהליך">
         <Input
           value={workflow.name}
@@ -188,25 +187,14 @@ function WorkflowHeader({ controller, workflow }) {
           ))}
         </Select>
       </Field>
-      <Field label="תיאור קצר" className="lg:col-span-2">
+      <Field label="תיאור קצר">
         <Textarea
-          rows={2}
+          rows={1}
           value={workflow.description}
           onChange={(event) => controller.updateWorkflow(workflow.id, { description: event.target.value })}
           placeholder="מה התהליך עושה ומתי משתמשים בו?"
         />
       </Field>
-      {workflow.triggerType === 'CALLED_BY_WORKFLOW' && (
-        <div className="rounded-lg border border-stone-200 bg-stone-50 px-3 py-2.5 text-[12px] text-stone-600 dark:border-stone-700 dark:bg-stone-950/40 dark:text-stone-300 lg:col-span-2">
-          {callers.length > 0 ? (
-            <span>
-              בשימוש אצל: {callers.map((caller) => caller.name).join(' · ')}
-            </span>
-          ) : (
-            <span className="text-amber-700 dark:text-amber-300">התהליך מוגדר כתהליך משנה, אך עדיין אין תהליך שמפעיל אותו.</span>
-          )}
-        </div>
-      )}
     </div>
   )
 }
@@ -267,14 +255,7 @@ function AddNodePopover({ workflow, onAdd }) {
 
 function ValidationSummary({ issues, workflows, onOpenIssue }) {
   const [open, setOpen] = useState(false)
-  if (issues.length === 0) {
-    return (
-      <div className="flex items-center gap-2 rounded-xl border border-emerald-200/80 bg-emerald-50 px-4 py-3 text-[12.5px] font-semibold text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300">
-        <CheckCircle2 className="size-4" />
-        כל התהליכים תקינים ומוכנים ליצוא
-      </div>
-    )
-  }
+  if (issues.length === 0) return null
   return (
     <div className="overflow-hidden rounded-xl border border-red-200 bg-red-50/70 dark:border-red-900/60 dark:bg-red-950/25">
       <button type="button" onClick={() => setOpen((value) => !value)} className="flex w-full items-center justify-between gap-4 px-4 py-3 text-start">
@@ -360,6 +341,7 @@ function WorkflowPreviewGrid({ workflows, issues, dependencies, onOpenWorkflow }
       {workflows.map((workflow) => {
         const workflowIssues = issues.filter((issue) => issue.workflowId === workflow.id && issue.severity !== 'warning')
         const connections = dependencies.filter((edge) => dependencySource(edge) === workflow.id).length
+        const draft = workflow.nodes.some((node) => node.isDraft)
         return (
           <button
             key={workflow.id}
@@ -378,6 +360,10 @@ function WorkflowPreviewGrid({ workflows, issues, dependencies, onOpenWorkflow }
                 <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-red-50 px-2 py-1 text-[10px] font-bold text-red-600 dark:bg-red-950/45 dark:text-red-400">
                   <AlertTriangle className="size-3" />
                   {workflowIssues.length}
+                </span>
+              ) : draft ? (
+                <span className="shrink-0 rounded-full bg-stone-100 px-2 py-1 text-[10px] font-bold text-stone-500 dark:bg-stone-800 dark:text-stone-400">
+                  טיוטה
                 </span>
               ) : (
                 <CheckCircle2 className="size-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
@@ -502,36 +488,26 @@ function WorkflowEditorModal({
               {view === 'dependencies' ? 'חיבור בין תהליכים' : activeWorkflow?.name || 'בניית Workflow'}
             </h2>
           </div>
-          <button type="button" onClick={onClose} aria-label="סגירת עורך התהליכים" className="rounded-lg p-2 text-stone-400 transition-colors hover:bg-stone-100 hover:text-ink dark:hover:bg-stone-800">
-            <X className="size-5" />
-          </button>
+          <div className="flex items-center gap-1.5">
+            {view === 'editor' && (
+              <button
+                type="button"
+                onClick={() => controller.setView('dependencies')}
+                className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-[12px] font-bold text-teal-700 transition-colors hover:bg-teal-50 dark:text-teal-400 dark:hover:bg-teal-950/35"
+              >
+                <Map className="size-3.5" />
+                חזרה למפה
+              </button>
+            )}
+            <button type="button" onClick={onClose} aria-label="סגירת עורך התהליכים" className="rounded-lg p-2 text-stone-400 transition-colors hover:bg-stone-100 hover:text-ink dark:hover:bg-stone-800">
+              <X className="size-5" />
+            </button>
+          </div>
         </header>
 
         <div className="min-h-0 flex-1 overflow-y-auto">
           <WorkflowRail controller={controller} onRequestDelete={onRequestDelete} />
           <div className="mx-auto max-w-[1360px] space-y-4 p-4 sm:p-5">
-            <div className="inline-flex rounded-xl border border-stone-200 bg-white p-1 dark:border-stone-700 dark:bg-stone-900" role="tablist" aria-label="מצב עריכת תהליכים">
-              <button
-                type="button"
-                role="tab"
-                aria-selected={view === 'editor'}
-                onClick={() => controller.setView('editor')}
-                className={`rounded-lg px-3 py-2 text-[12.5px] font-bold transition-colors ${view === 'editor' ? 'bg-stone-100 text-ink dark:bg-stone-800' : 'text-stone-400 hover:text-ink'}`}
-              >
-                עריכת תהליך
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={view === 'dependencies'}
-                onClick={() => controller.setView('dependencies')}
-                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-[12.5px] font-bold transition-colors ${view === 'dependencies' ? 'bg-stone-100 text-ink dark:bg-stone-800' : 'text-stone-400 hover:text-ink'}`}
-              >
-                <Map className="size-3.5" />
-                חיבור בין תהליכים
-              </button>
-            </div>
-
             {view === 'dependencies' ? (
               <>
                 <div className="rounded-xl border border-teal-700/15 bg-teal-700/5 px-4 py-3 text-[12.5px] leading-relaxed text-stone-600 dark:border-teal-400/15 dark:bg-teal-400/5 dark:text-stone-300">
@@ -670,9 +646,6 @@ export default function FlowBuilder({ controller, blocks, onOpenHttpBlock, delay
               <h3 className="text-[13.5px] font-bold text-ink">תצוגת Workflow</h3>
               <p className="mt-0.5 text-[11.5px] text-stone-400">לחיצה על תהליך תפתח אותו בעורך המלא</p>
             </div>
-            <GhostButton icon={Pencil} onClick={() => openEditor(controller.activeWorkflowId)}>
-              עריכת תהליכים
-            </GhostButton>
           </div>
 
           <WorkflowPreviewGrid workflows={workflows} issues={issues} dependencies={dependencyEdges} onOpenWorkflow={openEditor} />
