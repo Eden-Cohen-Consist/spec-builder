@@ -11,9 +11,11 @@ import TableBlock from './components/TableBlock.jsx'
 import AddBlockPopover from './components/AddBlockPopover.jsx'
 import ExportModal from './components/ExportModal.jsx'
 import MarkdownToWordModal from './components/MarkdownToWordModal.jsx'
-import { makeId, makeBlock, makeContactRow, makeTriggerRow, hasContactContent, isThirdParty, compileSpec } from './lib.js'
+import { makeBlock, makeContactRow, makeTriggerRow, hasContactContent, isThirdParty, compileSpec } from './lib.js'
+import { createWorkflow, migrateLegacyDraft, useWorkflowState } from './workflow/index.js'
 
-const DRAFT_KEY = 'glassix-spec-builder:draft:v1'
+const DRAFT_KEY_V1 = 'glassix-spec-builder:draft:v1'
+const DRAFT_KEY_V2 = 'glassix-spec-builder:draft:v2'
 const THEME_KEY = 'glassix-spec-builder:theme'
 
 const defaultAdmin = () => ({
@@ -24,7 +26,6 @@ const defaultAdmin = () => ({
   departmentId: '',
 })
 const defaultBusiness = () => ({ goal: '', triggers: [makeTriggerRow()] })
-const defaultFlow = () => [{ id: makeId(), kind: 'step', text: '' }]
 
 // Older drafts stored contacts as free text and http blocks without endpoint/method/headers
 const migrateAdmin = (saved) => {
@@ -66,7 +67,7 @@ const migrateBlocks = (blocks) => {
   const pending = []
   for (const block of blocks) {
     if (block.type === 'http') {
-      const httpBlock = { endpoint: '', method: 'GET', headers: [], authType: 'None', fallback: '', ...block }
+      const httpBlock = { title: '', endpoint: '', method: 'GET', headers: [], authType: 'None', fallback: '', ...block }
       for (const security of pending.splice(0)) foldSecurityIntoHttp(httpBlock, security)
       migrated.push(httpBlock)
     } else if (block.type === 'security') {
@@ -90,20 +91,32 @@ const migrateBlocks = (blocks) => {
   return migrated
 }
 
-const loadDraft = () => {
+const readDraft = (key) => {
   try {
-    return JSON.parse(localStorage.getItem(DRAFT_KEY))
+    return JSON.parse(localStorage.getItem(key))
   } catch {
     return null
   }
+}
+const loadDraft = () => {
+  const current = readDraft(DRAFT_KEY_V2)
+  if (current) return migrateLegacyDraft(current)
+  const legacy = readDraft(DRAFT_KEY_V1)
+  return legacy ? migrateLegacyDraft(legacy) : null
 }
 const draft = loadDraft()
 
 export default function App() {
   const [admin, setAdmin] = useState(() => (draft?.admin ? migrateAdmin(draft.admin) : defaultAdmin()))
   const [business, setBusiness] = useState(() => migrateBusiness(draft?.business))
-  const [flow, setFlow] = useState(draft?.flow?.length ? draft.flow : defaultFlow())
   const [blocks, setBlocks] = useState(() => migrateBlocks(draft?.blocks ?? []))
+  const workflow = useWorkflowState({
+    initialWorkflows: draft?.workflows?.length
+      ? draft.workflows
+      : [createWorkflow({ name: 'תהליך ראשי' })],
+    technicalBlocks: blocks.filter((block) => block.type === 'http'),
+  })
+  const { workflows } = workflow
   const [invalidIds, setInvalidIds] = useState(() => new Set())
   const [adminInvalid, setAdminInvalid] = useState(false)
   const [toast, setToast] = useState(null)
@@ -116,11 +129,14 @@ export default function App() {
   useEffect(() => {
     setSaveState('saving')
     const t = setTimeout(() => {
-      localStorage.setItem(DRAFT_KEY, JSON.stringify({ admin, business, flow, blocks }))
+      localStorage.setItem(
+        DRAFT_KEY_V2,
+        JSON.stringify({ schemaVersion: 2, admin, business, workflows, blocks }),
+      )
       setSaveState('saved')
     }, 600)
     return () => clearTimeout(t)
-  }, [admin, business, flow, blocks])
+  }, [admin, business, workflows, blocks])
 
   useEffect(() => {
     if (!toast) return
@@ -157,10 +173,11 @@ export default function App() {
 
   const resetDraft = () => {
     if (!window.confirm('לאפס את הטיוטה? כל הנתונים שהוזנו יימחקו.')) return
-    localStorage.removeItem(DRAFT_KEY)
+    localStorage.removeItem(DRAFT_KEY_V1)
+    localStorage.removeItem(DRAFT_KEY_V2)
     setAdmin(defaultAdmin())
     setBusiness(defaultBusiness())
-    setFlow(defaultFlow())
+    workflow.resetWorkflows([createWorkflow({ name: 'תהליך ראשי' })])
     setBlocks([])
     setInvalidIds(new Set())
     setAdminInvalid(false)
@@ -191,7 +208,19 @@ export default function App() {
         ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       return
     }
-    setSpec(compileSpec({ admin, business, flow, blocks }))
+    const workflowIssues = workflow.validateAllWorkflows(blocks.filter((block) => block.type === 'http'))
+    if (workflowIssues.length > 0) {
+      const first = workflowIssues[0]
+      workflow.selectWorkflow(first.workflowId)
+      if (first.nodeId) workflow.selectNode(first.nodeId, first.workflowId)
+      setToast({
+        message: `לא ניתן ליצור אפיון — יש לתקן ${workflowIssues.length} שגיאות בתהליכים`,
+        tone: 'error',
+      })
+      document.getElementById('section-workflows')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      return
+    }
+    setSpec(compileSpec({ admin, business, workflows, blocks }))
   }
 
   const renderBlockBody = (block) => {
@@ -285,7 +314,14 @@ export default function App() {
         <div className="space-y-5">
           <AdminSection value={admin} onChange={changeAdmin} invalid={adminInvalid} delay={60} />
           <BusinessSection value={business} onChange={setBusiness} delay={120} />
-          <FlowBuilder flow={flow} onChange={setFlow} delay={180} />
+          <FlowBuilder
+            controller={workflow}
+            blocks={blocks}
+            onOpenHttpBlock={(blockId) =>
+              document.getElementById(`block-${blockId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            }
+            delay={180}
+          />
         </div>
 
         <div className="animate-rise flex items-center gap-3 pb-4 pt-9" style={{ animationDelay: '240ms' }}>

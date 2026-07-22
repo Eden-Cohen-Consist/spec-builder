@@ -342,7 +342,17 @@ export default function HttpBlock({ block, invalid, onUpdate }) {
 
   return (
     <div>
+      <Field label="כותרת הבלוק" hint="השם שיופיע בבונה התהליכים">
+        <Input
+          value={block.title ?? ""}
+          onChange={(e) => onUpdate({ title: e.target.value })}
+          placeholder="למשל: פתיחת פנייה ב-Salesforce"
+        />
+      </Field>
+
+      <div className="mt-4">
       <CurlImport onImport={applyCurl} />
+      </div>
 
       <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-3">
         <Field label="מערכת מקור">

@@ -4,6 +4,7 @@ import { BLOCK_META } from '../constants.js'
 export default function DynamicBlock({ block, invalid, onDelete, children }) {
   const meta = BLOCK_META[block.type]
   const Icon = meta.icon
+  const customHttpTitle = block.type === 'http' ? block.title?.trim() : ''
 
   return (
     <section
@@ -28,8 +29,10 @@ export default function DynamicBlock({ block, invalid, onDelete, children }) {
             <Icon className="size-[18px]" />
           </span>
           <div>
-            <h3 className="text-[16px] font-bold leading-tight text-ink">{meta.title}</h3>
-            <p className="mt-0.5 text-[12.5px] text-stone-500 dark:text-stone-400">{meta.subtitle}</p>
+            <h3 className="text-[16px] font-bold leading-tight text-ink">{customHttpTitle || meta.title}</h3>
+            <p className="mt-0.5 text-[12.5px] text-stone-500 dark:text-stone-400">
+              {customHttpTitle ? meta.title : meta.subtitle}
+            </p>
           </div>
         </div>
         <button

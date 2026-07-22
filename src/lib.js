@@ -171,6 +171,7 @@ export const makeBlock = (type) => {
     case 'http':
       return {
         ...base,
+        title: '',
         source: '',
         destination: '',
         endpoint: '',
@@ -212,12 +213,11 @@ ${jsonBlock}
 `
 }
 
-export const compileSpec = ({ admin, business, flow, blocks }) => {
-  let stepCounter = 0
-
+export const compileSpec = ({ admin, business, workflows, blocks }) => {
   return {
     meta: {
       tool: 'Glassix Spec Builder',
+      schemaVersion: 2,
       generatedAt: new Date().toISOString(),
       language: 'he',
     },
@@ -234,23 +234,53 @@ export const compileSpec = ({ admin, business, flow, blocks }) => {
       businessGoal: business.goal,
       triggers: business.triggers.map((t) => t.text).filter((text) => text.trim()),
     },
-    logicalFlow: flow.map((node) =>
-      node.kind === 'step'
-        ? { type: 'step', step: ++stepCounter, description: node.text }
-        : {
-            type: 'branch',
-            paths: node.paths.map((path) => ({
-              condition: path.name,
-              actions: path.actions,
-            })),
-          },
-    ),
+    workflows: workflows.map((workflow) => ({
+      id: workflow.id,
+      name: workflow.name,
+      ...(workflow.description?.trim() && { description: workflow.description }),
+      triggerType: workflow.triggerType,
+      ...(workflow.triggerDescription?.trim() && { triggerDescription: workflow.triggerDescription }),
+      executionMode: workflow.executionMode,
+      inputs: workflow.inputs.map(({ id, name, type, required, description }) => ({
+        id,
+        name,
+        type,
+        required,
+        ...(description?.trim() && { description }),
+      })),
+      outputs: workflow.outputs.map(({ id, name, type, required, description }) => ({
+        id,
+        name,
+        type,
+        required,
+        ...(description?.trim() && { description }),
+      })),
+      nodes: workflow.nodes.map(({ id, workflowId, type, title, description, position, config }) => ({
+        id,
+        workflowId,
+        type,
+        title,
+        ...(description?.trim() && { description }),
+        position: { x: position.x, y: position.y },
+        config,
+      })),
+      edges: workflow.edges.map(({ id, source, target, sourceHandle, label, condition }) => ({
+        id,
+        source,
+        target,
+        ...(sourceHandle && { sourceHandle }),
+        ...(label?.trim() && { label }),
+        ...(condition?.trim() && { condition }),
+      })),
+    })),
     technicalBlocks: blocks.map((block) => {
       switch (block.type) {
         case 'http': {
           const thirdParty = isThirdParty(block.destination)
           return {
+            id: block.id,
             type: 'httpIntegration',
+            ...(block.title?.trim() && { title: block.title }),
             sourceSystem: block.source,
             destinationSystem: block.destination,
             isThirdParty: thirdParty,
@@ -280,12 +310,14 @@ export const compileSpec = ({ admin, business, flow, blocks }) => {
         }
         case 'freeText':
           return {
+            id: block.id,
             type: 'freeText',
             title: block.title,
             description: block.text,
           }
         case 'testData':
           return {
+            id: block.id,
             type: 'testData',
             entries: block.rows
               .filter((row) => row.key.trim() || row.value.trim())
@@ -294,6 +326,7 @@ export const compileSpec = ({ admin, business, flow, blocks }) => {
         case 'table': {
           const columnLabels = block.columns.map((col, i) => col.label.trim() || `עמודה ${i + 1}`)
           return {
+            id: block.id,
             type: 'dynamicTable',
             name: block.name,
             columns: columnLabels,
@@ -307,7 +340,7 @@ export const compileSpec = ({ admin, business, flow, blocks }) => {
           }
         }
         default:
-          return { type: block.type }
+          return { id: block.id, type: block.type }
       }
     }),
   }
