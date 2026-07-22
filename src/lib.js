@@ -213,7 +213,142 @@ ${jsonBlock}
 `
 }
 
+// --- Reader-facing flow export -------------------------------------------------
+// The internal graph links nodes and branches by UUID. For the AI hand-off we
+// re-express each workflow with human names: every node gets a unique readable id
+// and every edge/branch points at that name instead of an opaque handle, so the
+// flow reads like a sentence instead of a lookup table of IDs.
+
+// Map node id -> a unique, human-readable name. Titles are reused as-is; repeats
+// get a numeric suffix so references stay unambiguous.
+const buildNodeRefs = (nodes) => {
+  const refs = new Map()
+  const used = new Map()
+  for (const node of nodes) {
+    const base = (node.title || '').trim() || node.type
+    const seen = used.get(base) ?? 0
+    used.set(base, seen + 1)
+    refs.set(node.id, seen === 0 ? base : `${base} (${seen + 1})`)
+  }
+  return refs
+}
+
+// Describe a Call Workflow input source in words instead of a "nodeId.field" pointer.
+const describeMappingSource = (mapping, refOf) => {
+  const value = (mapping.sourceValue || '').trim()
+  switch (mapping.sourceType) {
+    case 'WORKFLOW_INPUT':
+      return { from: 'workflowInput', value }
+    case 'NODE_OUTPUT': {
+      const dot = value.indexOf('.')
+      const nodeId = dot === -1 ? value : value.slice(0, dot)
+      return { from: 'nodeOutput', node: refOf(nodeId) ?? nodeId, field: dot === -1 ? '' : value.slice(dot + 1) }
+    }
+    case 'CONTEXT':
+      return { from: 'context', value }
+    default:
+      return { from: 'static', value }
+  }
+}
+
+// Turn one workflow's node/edge graph into a name-based `flow` plus a plain-text
+// `flowSummary` (a list of "from → to" transitions to verify against).
+const buildWorkflowFlow = (workflow, { workflowNameById, blockTitleById }) => {
+  const nodeRefs = buildNodeRefs(workflow.nodes)
+  const nodeById = new Map(workflow.nodes.map((node) => [node.id, node]))
+  const refOf = (id) => nodeRefs.get(id) ?? null
+  const validEdges = workflow.edges.filter((edge) => nodeById.has(edge.source) && nodeById.has(edge.target))
+  const outgoing = new Map(workflow.nodes.map((node) => [node.id, []]))
+  for (const edge of validEdges) outgoing.get(edge.source).push(edge)
+
+  const flowSummary = []
+  const arrow = (from, to, note) => flowSummary.push(`${from} → ${to ?? '(מנותק)'}${note ? ` [${note}]` : ''}`)
+
+  const flow = workflow.nodes.map((node) => {
+    const ref = nodeRefs.get(node.id)
+    const edges = outgoing.get(node.id) ?? []
+    const out = {
+      id: ref,
+      type: node.type,
+      ...(node.description?.trim() && { description: node.description }),
+    }
+
+    // Decision / parallel: fold each branch's label, condition and destination together.
+    if (node.type === 'DECISION' || node.type === 'PARALLEL') {
+      const branches = Array.isArray(node.config?.branches) ? node.config.branches : []
+      out.branches = branches.map((branch) => {
+        const edge = edges.find((candidate) => candidate.sourceHandle === branch.id)
+        const goesTo = edge ? refOf(edge.target) : null
+        const condition = node.type === 'DECISION' ? (branch.condition || '').trim() : ''
+        arrow(ref, goesTo, [branch.label, condition].filter(Boolean).join(': '))
+        return { label: branch.label, ...(condition && { condition }), goesTo }
+      })
+      return out
+    }
+
+    if (node.type === 'HTTP_REQUEST') {
+      const title = blockTitleById.get(node.config?.technicalBlockId)
+      if (title) out.technicalBlock = title
+    } else if (node.type === 'DELAY') {
+      out.duration = node.config?.duration
+      out.unit = node.config?.unit
+    } else if (node.type === 'CALL_WORKFLOW') {
+      out.targetWorkflow = workflowNameById.get(node.config?.targetWorkflowId) ?? null
+      out.waitForCompletion = node.config?.waitForCompletion !== false
+      const inputMappings = Array.isArray(node.config?.inputMappings) ? node.config.inputMappings : []
+      if (inputMappings.length) {
+        out.inputMappings = inputMappings.map((mapping) => ({
+          targetInput: mapping.targetInput,
+          source: describeMappingSource(mapping, refOf),
+        }))
+      }
+      const outputMappings = Array.isArray(node.config?.outputMappings) ? node.config.outputMappings : []
+      if (outputMappings.length) {
+        out.outputMappings = outputMappings.map(({ sourceOutput, targetVariable }) => ({ sourceOutput, targetVariable }))
+      }
+      const successEdge = edges.find((edge) => edge.sourceHandle === 'success') || edges.find((edge) => !edge.sourceHandle)
+      out.onSuccess = successEdge ? refOf(successEdge.target) : refOf(node.config?.onSuccess?.nextNodeId)
+      arrow(ref, out.onSuccess, 'הצלחה')
+      const behavior = node.config?.onFailure?.behavior ?? 'STOP'
+      if (behavior === 'GO_TO_NODE') {
+        const failureEdge = edges.find((edge) => edge.sourceHandle === 'failure')
+        const goesTo = refOf(failureEdge?.target ?? node.config?.onFailure?.targetNodeId)
+        out.onFailure = { behavior, goesTo }
+        arrow(ref, goesTo, 'כשל')
+      } else {
+        out.onFailure = { behavior }
+      }
+      return out
+    }
+
+    // Everything else has a plain successor (or several): resolve to names.
+    if (node.type !== 'END') {
+      const routes = edges.map((edge) => ({
+        ...(edge.label?.trim() && { label: edge.label }),
+        goesTo: refOf(edge.target),
+      }))
+      if (routes.length === 1 && !routes[0].label) {
+        out.next = routes[0].goesTo
+        arrow(ref, routes[0].goesTo)
+      } else if (routes.length) {
+        out.next = routes
+        for (const route of routes) arrow(ref, route.goesTo, route.label)
+      }
+    }
+
+    return out
+  })
+
+  return { flow, flowSummary }
+}
+
 export const compileSpec = ({ admin, business, workflows, blocks }) => {
+  const workflowNameById = new Map(workflows.map((workflow) => [workflow.id, workflow.name]))
+  const blockTitleById = new Map(
+    blocks
+      .filter((block) => block.type === 'http')
+      .map((block) => [block.id, (block.title || '').trim() || block.destination || 'HTTP']),
+  )
   return {
     meta: {
       tool: 'Glassix Spec Builder',
@@ -234,46 +369,31 @@ export const compileSpec = ({ admin, business, workflows, blocks }) => {
       businessGoal: business.goal,
       triggers: business.triggers.map((t) => t.text).filter((text) => text.trim()),
     },
-    workflows: workflows.map((workflow) => ({
-      id: workflow.id,
-      name: workflow.name,
-      ...(workflow.description?.trim() && { description: workflow.description }),
-      triggerType: workflow.triggerType,
-      ...(workflow.triggerDescription?.trim() && { triggerDescription: workflow.triggerDescription }),
-      executionMode: workflow.executionMode,
-      connections: workflow.connections.map(({ id, targetWorkflowId }) => ({ id, targetWorkflowId })),
-      inputs: workflow.inputs.map(({ id, name, type, required, description }) => ({
-        id,
+    workflows: workflows.map((workflow) => {
+      const { flow, flowSummary } = buildWorkflowFlow(workflow, { workflowNameById, blockTitleById })
+      const connections = workflow.connections
+        .map((connection) => workflowNameById.get(connection.targetWorkflowId))
+        .filter(Boolean)
+        .map((name) => ({ to: name }))
+      const variable = ({ name, type, required, description }) => ({
         name,
         type,
         required,
         ...(description?.trim() && { description }),
-      })),
-      outputs: workflow.outputs.map(({ id, name, type, required, description }) => ({
-        id,
-        name,
-        type,
-        required,
-        ...(description?.trim() && { description }),
-      })),
-      nodes: workflow.nodes.map(({ id, workflowId, type, title, description, position, config }) => ({
-        id,
-        workflowId,
-        type,
-        title,
-        ...(description?.trim() && { description }),
-        position: { x: position.x, y: position.y },
-        config,
-      })),
-      edges: workflow.edges.map(({ id, source, target, sourceHandle, label, condition }) => ({
-        id,
-        source,
-        target,
-        ...(sourceHandle && { sourceHandle }),
-        ...(label?.trim() && { label }),
-        ...(condition?.trim() && { condition }),
-      })),
-    })),
+      })
+      return {
+        name: workflow.name,
+        ...(workflow.description?.trim() && { description: workflow.description }),
+        triggerType: workflow.triggerType,
+        ...(workflow.triggerDescription?.trim() && { triggerDescription: workflow.triggerDescription }),
+        executionMode: workflow.executionMode,
+        ...(connections.length && { connections }),
+        ...(workflow.inputs.length && { inputs: workflow.inputs.map(variable) }),
+        ...(workflow.outputs.length && { outputs: workflow.outputs.map(variable) }),
+        flow,
+        ...(flowSummary.length && { flowSummary }),
+      }
+    }),
     technicalBlocks: blocks.map((block) => {
       switch (block.type) {
         case 'http': {

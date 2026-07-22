@@ -43,10 +43,10 @@ _Interrogation Style:_ Ask one or two focused questions at a time. Do not overwh
 
 ## 3. תהליכים עסקיים וקשרים ביניהם (Workflows)
 
-- Begin with a concise process map that names every workflow and every map-only relationship from each workflow's `connections` array. Treat legacy Call Workflow nodes separately when they exist.
+- Begin with a concise process map that names every workflow and every map-only relationship from each workflow's `connections` list (each entry names the workflow it points `to`). Treat legacy Call Workflow steps separately when they exist.
 - Give every workflow its own subsection containing its purpose, trigger, execution mode, inputs and outputs.
-- Describe the workflow by following its Nodes and Edges from Start to every reachable End. Do not invent a linear order when the graph branches or runs paths in parallel.
-- For Decision nodes, describe each labeled condition as a separate short paragraph. For Call Workflow nodes, document the target workflow, input/output mappings, wait behavior and failure route.
+- Describe the workflow by walking its `flow` steps from START to every reachable END, following each step's `next` (a name, or a list of routes) and, for branching steps, its `branches`. Each step is identified by a readable `id`, and every route points at another step's `id` by name — there are no UUIDs to resolve. The `flowSummary` list restates the same transitions as "from → to" lines; use it to verify your reading. Do not invent a linear order when the graph branches or runs paths in parallel.
+- For DECISION steps, describe each branch (its `label`, `condition` and the step it `goesTo`) as a separate short paragraph; a PARALLEL step runs all of its branches at once. For Call Workflow steps, document the target workflow, input/output mappings, wait behavior and failure route.
 - Explicitly identify draft, disconnected, dangling or circular paths as blockers instead of silently omitting them.
 
 ## 4. אינטגרציות ובקשות API (API Architecture)
