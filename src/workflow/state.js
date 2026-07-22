@@ -4,6 +4,7 @@ import {
   createEdge,
   createNode,
   createWorkflow,
+  createWorkflowConnection,
   duplicateWorkflowData,
   getWorkflowDependencies as readWorkflowDependencies,
   normalizeWorkflows,
@@ -27,6 +28,8 @@ export const WORKFLOW_ACTIONS = Object.freeze({
   REPLACE_WORKFLOWS: 'REPLACE_WORKFLOWS',
   ADD_WORKFLOW: 'ADD_WORKFLOW',
   UPDATE_WORKFLOW: 'UPDATE_WORKFLOW',
+  ADD_WORKFLOW_CONNECTION: 'ADD_WORKFLOW_CONNECTION',
+  REMOVE_WORKFLOW_CONNECTION: 'REMOVE_WORKFLOW_CONNECTION',
   DUPLICATE_WORKFLOW: 'DUPLICATE_WORKFLOW',
   REMOVE_WORKFLOW: 'REMOVE_WORKFLOW',
   REORDER_WORKFLOWS: 'REORDER_WORKFLOWS',
@@ -308,6 +311,40 @@ export const workflowReducer = (state, action) => {
         ...state,
         workflows: updateWorkflowHeader(state.workflows, action.workflowId, action.patch ?? {}),
       }
+    case WORKFLOW_ACTIONS.ADD_WORKFLOW_CONNECTION: {
+      if (!action.sourceWorkflowId || !action.targetWorkflowId || action.sourceWorkflowId === action.targetWorkflowId) {
+        return state
+      }
+      return {
+        ...state,
+        workflows: state.workflows.map((workflow) =>
+          workflow.id === action.sourceWorkflowId &&
+          !workflow.connections.some((connection) => connection.targetWorkflowId === action.targetWorkflowId)
+            ? {
+                ...workflow,
+                connections: [
+                  ...workflow.connections,
+                  createWorkflowConnection(action.targetWorkflowId, action.connection),
+                ],
+              }
+            : workflow,
+        ),
+      }
+    }
+    case WORKFLOW_ACTIONS.REMOVE_WORKFLOW_CONNECTION:
+      return {
+        ...state,
+        workflows: state.workflows.map((workflow) =>
+          workflow.id === action.sourceWorkflowId
+            ? {
+                ...workflow,
+                connections: workflow.connections.filter(
+                  (connection) => connection.id !== action.connectionId,
+                ),
+              }
+            : workflow,
+        ),
+      }
     case WORKFLOW_ACTIONS.DUPLICATE_WORKFLOW: {
       const index = state.workflows.findIndex((workflow) => workflow.id === action.workflowId)
       if (index === -1) return state
@@ -483,6 +520,10 @@ export function useWorkflowState(initialOrOptions, technicalBlocks) {
       dispatch({ type: WORKFLOW_ACTIONS.ADD_WORKFLOW, workflow, select }),
     updateWorkflow: (workflowId, patch) =>
       dispatch({ type: WORKFLOW_ACTIONS.UPDATE_WORKFLOW, workflowId, patch }),
+    addWorkflowConnection: (sourceWorkflowId, targetWorkflowId) =>
+      dispatch({ type: WORKFLOW_ACTIONS.ADD_WORKFLOW_CONNECTION, sourceWorkflowId, targetWorkflowId }),
+    removeWorkflowConnection: (sourceWorkflowId, connectionId) =>
+      dispatch({ type: WORKFLOW_ACTIONS.REMOVE_WORKFLOW_CONNECTION, sourceWorkflowId, connectionId }),
     duplicateWorkflow: (workflowId, overrides) =>
       dispatch({ type: WORKFLOW_ACTIONS.DUPLICATE_WORKFLOW, workflowId, overrides }),
     removeWorkflow: (workflowId) => dispatch({ type: WORKFLOW_ACTIONS.REMOVE_WORKFLOW, workflowId }),

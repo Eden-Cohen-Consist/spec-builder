@@ -241,6 +241,7 @@ export const compileSpec = ({ admin, business, workflows, blocks }) => {
       triggerType: workflow.triggerType,
       ...(workflow.triggerDescription?.trim() && { triggerDescription: workflow.triggerDescription }),
       executionMode: workflow.executionMode,
+      connections: workflow.connections.map(({ id, targetWorkflowId }) => ({ id, targetWorkflowId })),
       inputs: workflow.inputs.map(({ id, name, type, required, description }) => ({
         id,
         name,

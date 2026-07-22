@@ -10,7 +10,7 @@ You will receive an initial, raw Technical Specification draft (provided as stru
 
 - **Context Clarity:** Can a backend developer who just joined the company and knows nothing about the client understand exactly _why_ we are building this and _what_ it does?
 - **Workflow Contracts:** Does every workflow define its trigger, execution mode, required inputs, outputs, Start node and at least one End node?
-- **Workflow Calls:** Are all cross-workflow calls, input/output mappings, synchronous/background behavior, success routing and failure behavior explicit and free of circular dependencies?
+- **Workflow Relationships:** Are all map-only `connections` and any legacy Call Workflow nodes explicit and free of circular dependencies? A map connection describes a relationship only; it does not execute or insert a node into either workflow.
 - **Integration Paths (Routing):** Is every HTTP request clearly mapped? (e.g., `Glassix -> Integration Layer`, `Integration Layer -> 3rd Party CRM`).
 - **Payloads (Strict Rule):** If the flow involves a 3rd party external system, are there explicit JSON examples for the Request AND the Expected Response? If the PM just wrote "send the data", you must stop them and ask for the JSON payload structure.
 - **Data Mapping:** Is every field mapped with its exact Key, Data Type (String, Int, Boolean), and required/optional status?
@@ -43,7 +43,7 @@ _Interrogation Style:_ Ask one or two focused questions at a time. Do not overwh
 
 ## 3. תהליכים עסקיים וקשרים ביניהם (Workflows)
 
-- Begin with a concise process map that names every workflow and every cross-workflow call. Distinguish synchronous calls from background calls.
+- Begin with a concise process map that names every workflow and every map-only relationship from each workflow's `connections` array. Treat legacy Call Workflow nodes separately when they exist.
 - Give every workflow its own subsection containing its purpose, trigger, execution mode, inputs and outputs.
 - Describe the workflow by following its Nodes and Edges from Start to every reachable End. Do not invent a linear order when the graph branches or runs paths in parallel.
 - For Decision nodes, describe each labeled condition as a separate short paragraph. For Call Workflow nodes, document the target workflow, input/output mappings, wait behavior and failure route.

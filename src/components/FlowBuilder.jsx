@@ -21,15 +21,11 @@ import {
   X,
 } from 'lucide-react'
 import LockedSection from './LockedSection.jsx'
-import { Checkbox, DeleteButton, Field, GhostButton, Input, Select, Textarea } from './ui.jsx'
+import { Field, GhostButton, Input, Select, Textarea } from './ui.jsx'
 import {
-  WORKFLOW_EXECUTION_MODE_LABELS,
   WORKFLOW_NODE_TYPE_LABELS,
   WORKFLOW_TRIGGER_LABELS,
   WORKFLOW_TRIGGER_TYPES,
-  WORKFLOW_VARIABLE_TYPE_LABELS,
-  WORKFLOW_VARIABLE_TYPES,
-  createWorkflowVariable,
   wouldCreateCycle,
 } from '../workflow/index.js'
 import { WorkflowCanvas, WorkflowDependencyView } from './workflow/WorkflowCanvas.jsx'
@@ -39,7 +35,6 @@ const ADDABLE_NODES = [
   ['ACTION', MousePointerClick, 'פעולה עסקית'],
   ['DECISION', GitBranch, 'החלטה ומסלולים'],
   ['HTTP_REQUEST', Globe2, 'בקשת HTTP'],
-  ['CALL_WORKFLOW', Workflow, 'הפעלת תהליך אחר'],
   ['PARALLEL', Network, 'מסלולים מקבילים'],
   ['DELAY', Timer, 'השהיה'],
   ['END', Square, 'נקודת סיום נוספת'],
@@ -64,7 +59,7 @@ function WorkflowRail({ controller, onRequestDelete }) {
           const workflowIssues = issues.filter(
             (issue) => issue.workflowId === workflow.id && issue.severity !== 'warning',
           )
-          const callCount = workflow.nodes.filter((node) => node.type === 'CALL_WORKFLOW').length
+          const connectionCount = dependencyEdges.filter((edge) => dependencySource(edge) === workflow.id).length
           const draft = workflow.nodes.some((node) => node.isDraft)
           const active = workflow.id === activeWorkflowId
           return (
@@ -101,7 +96,7 @@ function WorkflowRail({ controller, onRequestDelete }) {
                 <div className="mt-3 flex flex-wrap gap-1.5 text-[9.5px] font-semibold text-stone-500 dark:text-stone-400">
                   <span className="rounded-md bg-stone-100 px-1.5 py-0.5 dark:bg-stone-800">{WORKFLOW_TRIGGER_LABELS[workflow.triggerType]}</span>
                   <span className="rounded-md bg-stone-100 px-1.5 py-0.5 dark:bg-stone-800">{workflow.nodes.length} Nodes</span>
-                  <span className="rounded-md bg-stone-100 px-1.5 py-0.5 dark:bg-stone-800">{callCount} קריאות</span>
+                  <span className="rounded-md bg-stone-100 px-1.5 py-0.5 dark:bg-stone-800">{connectionCount} קשרים</span>
                 </div>
               </button>
               <div className="flex items-center justify-end gap-0.5 border-t border-stone-100 px-2 py-1.5 dark:border-stone-800">
@@ -193,38 +188,12 @@ function WorkflowHeader({ controller, workflow }) {
           ))}
         </Select>
       </Field>
-      <Field label="תיאור קצר">
+      <Field label="תיאור קצר" className="lg:col-span-2">
         <Textarea
           rows={2}
           value={workflow.description}
           onChange={(event) => controller.updateWorkflow(workflow.id, { description: event.target.value })}
           placeholder="מה התהליך עושה ומתי משתמשים בו?"
-        />
-      </Field>
-      <div>
-        <div className="mb-1.5 text-[13px] font-semibold text-stone-600 dark:text-stone-300">מצב הרצה ברירת מחדל</div>
-        <div className="grid grid-cols-2 rounded-lg bg-stone-100 p-1 dark:bg-stone-800">
-          {Object.entries(WORKFLOW_EXECUTION_MODE_LABELS).map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => controller.updateWorkflow(workflow.id, { executionMode: value })}
-              className={`rounded-md px-3 py-2 text-[12.5px] font-bold transition-all ${
-                workflow.executionMode === value
-                  ? 'bg-white text-teal-700 shadow-sm dark:bg-stone-700 dark:text-teal-300'
-                  : 'text-stone-500 hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
-      <Field label="תיאור ה־Trigger" className="lg:col-span-2">
-        <Input
-          value={workflow.triggerDescription}
-          onChange={(event) => controller.updateWorkflow(workflow.id, { triggerDescription: event.target.value })}
-          placeholder="מה בדיוק מפעיל את התהליך?"
         />
       </Field>
       {workflow.triggerType === 'CALLED_BY_WORKFLOW' && (
@@ -236,73 +205,6 @@ function WorkflowHeader({ controller, workflow }) {
           ) : (
             <span className="text-amber-700 dark:text-amber-300">התהליך מוגדר כתהליך משנה, אך עדיין אין תהליך שמפעיל אותו.</span>
           )}
-        </div>
-      )}
-    </div>
-  )
-}
-
-function VariablesEditor({ title, description, variables, onChange }) {
-  const [open, setOpen] = useState(false)
-  const update = (index, patch) =>
-    onChange(variables.map((variable, itemIndex) => (itemIndex === index ? { ...variable, ...patch } : variable)))
-
-  return (
-    <div className="overflow-hidden rounded-xl border border-stone-200 bg-white dark:border-stone-700 dark:bg-stone-900">
-      <button
-        type="button"
-        onClick={() => setOpen((value) => !value)}
-        className="flex w-full items-center justify-between gap-4 px-4 py-3.5 text-start"
-        aria-expanded={open}
-      >
-        <div>
-          <div className="flex items-center gap-2">
-            <h3 className="text-[13.5px] font-bold text-ink">{title}</h3>
-            <span className="rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-bold text-stone-500 dark:bg-stone-800 dark:text-stone-400">{variables.length}</span>
-          </div>
-          <p className="mt-0.5 text-[11.5px] text-stone-400 dark:text-stone-500">{description}</p>
-        </div>
-        <ChevronDown className={`size-4 text-stone-400 transition-transform ${open ? 'rotate-180' : ''}`} />
-      </button>
-      {open && (
-        <div className="border-t border-stone-100 px-4 py-4 dark:border-stone-800">
-          <div className="space-y-3">
-            {variables.map((variable, index) => (
-              <div key={variable.id} className="grid gap-2 rounded-xl border border-stone-200 bg-stone-50/55 p-3 dark:border-stone-700 dark:bg-stone-950/30 sm:grid-cols-[1.1fr_0.75fr_auto_auto]">
-                <Input
-                  value={variable.name}
-                  onChange={(event) => update(index, { name: event.target.value })}
-                  placeholder="variableName"
-                  dir="ltr"
-                  className="!py-1.5 !text-left !font-mono !text-[12.5px]"
-                />
-                <Select
-                  value={variable.type}
-                  onChange={(event) => update(index, { type: event.target.value })}
-                  className="!py-1.5 !text-[12.5px]"
-                >
-                  {WORKFLOW_VARIABLE_TYPES.map((type) => (
-                    <option key={type} value={type}>
-                      {WORKFLOW_VARIABLE_TYPE_LABELS[type]}
-                    </option>
-                  ))}
-                </Select>
-                <Checkbox checked={variable.required} onChange={(required) => update(index, { required })} label="חובה" />
-                <DeleteButton aria-label="מחיקת משתנה" onClick={() => onChange(variables.filter((item) => item.id !== variable.id))}>
-                  <Trash2 className="size-3.5" />
-                </DeleteButton>
-                <Input
-                  value={variable.description}
-                  onChange={(event) => update(index, { description: event.target.value })}
-                  placeholder="תיאור קצר"
-                  className="!py-1.5 !text-[12.5px] sm:col-span-full"
-                />
-              </div>
-            ))}
-          </div>
-          <GhostButton icon={Plus} onClick={() => onChange([...variables, createWorkflowVariable()])} className="mt-3">
-            הוסף משתנה
-          </GhostButton>
         </div>
       )}
     </div>
@@ -340,7 +242,7 @@ function AddNodePopover({ workflow, onAdd }) {
         הוסף Node
       </GhostButton>
       {open && (
-        <div className="animate-pop absolute end-0 top-full z-30 mt-2 w-[290px] overflow-hidden rounded-xl border border-stone-200 bg-white p-2 shadow-xl shadow-stone-900/10 dark:border-stone-700 dark:bg-stone-900 dark:shadow-black/30">
+        <div className="animate-pop absolute right-0 top-full z-30 mt-2 max-h-[calc(100vh-10rem)] w-[calc(100vw-3rem)] max-w-[290px] overflow-y-auto rounded-xl border border-stone-200 bg-white p-2 shadow-xl shadow-stone-900/10 dark:border-stone-700 dark:bg-stone-900 dark:shadow-black/30">
           {ADDABLE_NODES.map(([type, Icon, description]) => (
             <button
               key={type}
@@ -443,7 +345,7 @@ function DeleteWorkflowDialog({ workflow, callers, onCancel, onConfirm }) {
   )
 }
 
-function WorkflowPreviewGrid({ workflows, issues, onOpenWorkflow }) {
+function WorkflowPreviewGrid({ workflows, issues, dependencies, onOpenWorkflow }) {
   if (workflows.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-stone-300 px-5 py-8 text-center dark:border-stone-700">
@@ -457,7 +359,7 @@ function WorkflowPreviewGrid({ workflows, issues, onOpenWorkflow }) {
     <div className="grid gap-3 sm:grid-cols-2">
       {workflows.map((workflow) => {
         const workflowIssues = issues.filter((issue) => issue.workflowId === workflow.id && issue.severity !== 'warning')
-        const calls = workflow.nodes.filter((node) => node.type === 'CALL_WORKFLOW').length
+        const connections = dependencies.filter((edge) => dependencySource(edge) === workflow.id).length
         return (
           <button
             key={workflow.id}
@@ -484,7 +386,7 @@ function WorkflowPreviewGrid({ workflows, issues, onOpenWorkflow }) {
             <div className="mt-3 flex flex-wrap gap-1.5 text-[10px] font-semibold text-stone-500 dark:text-stone-400">
               <span className="rounded-md bg-white px-2 py-1 dark:bg-stone-800">{WORKFLOW_TRIGGER_LABELS[workflow.triggerType]}</span>
               <span className="rounded-md bg-white px-2 py-1 dark:bg-stone-800">{workflow.nodes.length} Nodes</span>
-              <span className="rounded-md bg-white px-2 py-1 dark:bg-stone-800">{calls} קריאות</span>
+              <span className="rounded-md bg-white px-2 py-1 dark:bg-stone-800">{connections} קשרים</span>
             </div>
             <div className="mt-3 flex items-center gap-1 overflow-hidden" dir="ltr">
               {workflow.nodes.slice(0, 5).map((node) => (
@@ -506,7 +408,8 @@ function WorkflowEditorModal({
   onRequestDelete,
   dialogOpen,
 }) {
-  const { workflows, activeWorkflow, selectedNodeId, issues } = controller
+  const { workflows, activeWorkflow, selectedNodeId, issues, view, dependencies } = controller
+  const dependencyEdges = dependencies?.edges ?? dependencies ?? []
   const selectedNode = activeWorkflow?.nodes.find((node) => node.id === selectedNodeId) ?? null
   const activeIssues = activeWorkflow ? issues.filter((issue) => issue.workflowId === activeWorkflow.id) : []
 
@@ -550,6 +453,40 @@ function WorkflowEditorModal({
     if (issue.nodeId) controller.selectNode(issue.nodeId, issue.workflowId)
   }
 
+  const canConnectWorkflows = (connection) => {
+    const { source, target } = connection
+    if (!source || !target || source === target) return false
+    if (dependencyEdges.some((edge) => dependencySource(edge) === source && dependencyTarget(edge) === target)) {
+      return false
+    }
+    return !wouldCreateCycle(workflows, source, target)
+  }
+
+  const connectWorkflows = (connection) => {
+    if (!canConnectWorkflows(connection)) return
+    controller.addWorkflowConnection(connection.source, connection.target)
+  }
+
+  const disconnectWorkflow = (dependency) => {
+    const sourceWorkflowId = dependencySource(dependency)
+    if (!sourceWorkflowId) return
+    if (dependency?.connectionId) {
+      controller.removeWorkflowConnection(sourceWorkflowId, dependency.connectionId)
+      return
+    }
+    if (!dependency?.callNodeId) return
+    controller.updateNode(
+      dependency.callNodeId,
+      { config: { targetWorkflowId: '', inputMappings: [], outputMappings: [] } },
+      sourceWorkflowId,
+    )
+  }
+
+  const openWorkflow = (workflowId) => {
+    controller.selectWorkflow(workflowId)
+    controller.setView('editor')
+  }
+
   return createPortal(
     <div className="fixed inset-0 z-[80] flex items-center justify-center bg-stone-950/65 p-0 backdrop-blur-[4px] sm:p-4" dir="rtl">
       <section
@@ -562,7 +499,7 @@ function WorkflowEditorModal({
           <div>
             <div className="text-[10.5px] font-bold uppercase tracking-wide text-teal-700 dark:text-teal-400">עורך תהליכים</div>
             <h2 id="workflow-editor-title" className="mt-0.5 font-display text-[19px] font-bold text-ink">
-              {activeWorkflow?.name || 'בניית Workflow'}
+              {view === 'dependencies' ? 'חיבור בין תהליכים' : activeWorkflow?.name || 'בניית Workflow'}
             </h2>
           </div>
           <button type="button" onClick={onClose} aria-label="סגירת עורך התהליכים" className="rounded-lg p-2 text-stone-400 transition-colors hover:bg-stone-100 hover:text-ink dark:hover:bg-stone-800">
@@ -573,44 +510,72 @@ function WorkflowEditorModal({
         <div className="min-h-0 flex-1 overflow-y-auto">
           <WorkflowRail controller={controller} onRequestDelete={onRequestDelete} />
           <div className="mx-auto max-w-[1360px] space-y-4 p-4 sm:p-5">
-            {activeWorkflow ? (
+            <div className="inline-flex rounded-xl border border-stone-200 bg-white p-1 dark:border-stone-700 dark:bg-stone-900" role="tablist" aria-label="מצב עריכת תהליכים">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={view === 'editor'}
+                onClick={() => controller.setView('editor')}
+                className={`rounded-lg px-3 py-2 text-[12.5px] font-bold transition-colors ${view === 'editor' ? 'bg-stone-100 text-ink dark:bg-stone-800' : 'text-stone-400 hover:text-ink'}`}
+              >
+                עריכת תהליך
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={view === 'dependencies'}
+                onClick={() => controller.setView('dependencies')}
+                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-[12.5px] font-bold transition-colors ${view === 'dependencies' ? 'bg-stone-100 text-ink dark:bg-stone-800' : 'text-stone-400 hover:text-ink'}`}
+              >
+                <Map className="size-3.5" />
+                חיבור בין תהליכים
+              </button>
+            </div>
+
+            {view === 'dependencies' ? (
               <>
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <h3 className="font-display text-[17px] font-bold text-ink">עריכת התהליך</h3>
-                    <p className="mt-0.5 text-[11.5px] text-stone-400">שינויים נשמרים אוטומטית בטיוטה</p>
-                  </div>
-                  <AddNodePopover workflow={activeWorkflow} onAdd={controller.addNode} />
+                <div className="rounded-xl border border-teal-700/15 bg-teal-700/5 px-4 py-3 text-[12.5px] leading-relaxed text-stone-600 dark:border-teal-400/15 dark:bg-teal-400/5 dark:text-stone-300">
+                  גררו חיבור מהנקודה התחתונה של תהליך אחד אל הנקודה העליונה של תהליך אחר. הקשר נשמר במפה בלבד ואינו מוסיף או משנה Nodes בתוך התהליכים; חיבורים כפולים או מעגליים חסומים.
+                </div>
+                <WorkflowDependencyView
+                  workflows={workflows}
+                  dependencies={dependencyEdges}
+                  issues={issues}
+                  onOpenWorkflow={openWorkflow}
+                  editable
+                  onConnectWorkflows={connectWorkflows}
+                  onDisconnectWorkflow={disconnectWorkflow}
+                  isValidConnection={canConnectWorkflows}
+                  className="h-[min(68vh,680px)] min-h-[480px]"
+                />
+                <ValidationSummary issues={issues} workflows={workflows} onOpenIssue={openIssue} />
+              </>
+            ) : activeWorkflow ? (
+              <>
+                <div>
+                  <h3 className="font-display text-[17px] font-bold text-ink">עריכת התהליך</h3>
+                  <p className="mt-0.5 text-[11.5px] text-stone-400">שינויים נשמרים אוטומטית בטיוטה</p>
                 </div>
 
                 <WorkflowHeader controller={controller} workflow={activeWorkflow} />
-                <div className="grid gap-3 lg:grid-cols-2">
-                  <VariablesEditor
-                    title="Inputs"
-                    description="מידע שהתהליך מקבל בתחילתו"
-                    variables={activeWorkflow.inputs}
-                    onChange={(variables) => controller.updateWorkflowInputs(activeWorkflow.id, variables)}
-                  />
-                  <VariablesEditor
-                    title="Outputs"
-                    description="ערכים שהתהליך מחזיר למפעיל"
-                    variables={activeWorkflow.outputs}
-                    onChange={(variables) => controller.updateWorkflowOutputs(activeWorkflow.id, variables)}
-                  />
-                </div>
 
                 <div className={`grid min-w-0 gap-4 ${selectedNode ? 'xl:grid-cols-[minmax(0,1fr)_350px]' : ''}`}>
-                  <WorkflowCanvas
-                    workflow={activeWorkflow}
-                    blocks={blocks}
-                    selectedNodeId={selectedNodeId}
-                    issues={activeIssues}
-                    onSelectNode={controller.selectNode}
-                    onMoveNode={(nodeId, position) => controller.updateNode(nodeId, { position }, activeWorkflow.id)}
-                    onConnect={(connection) => controller.connectNodes(connection, activeWorkflow.id)}
-                    onRemoveNode={(nodeId) => controller.removeNode(nodeId, activeWorkflow.id)}
-                    onRemoveEdge={(edgeId) => controller.removeEdge(edgeId, activeWorkflow.id)}
-                  />
+                  <div className="relative min-w-0">
+                    <WorkflowCanvas
+                      workflow={activeWorkflow}
+                      blocks={blocks}
+                      selectedNodeId={selectedNodeId}
+                      issues={activeIssues}
+                      onSelectNode={controller.selectNode}
+                      onMoveNode={(nodeId, position) => controller.updateNode(nodeId, { position }, activeWorkflow.id)}
+                      onConnect={(connection) => controller.connectNodes(connection, activeWorkflow.id)}
+                      onRemoveNode={(nodeId) => controller.removeNode(nodeId, activeWorkflow.id)}
+                      onRemoveEdge={(edgeId) => controller.removeEdge(edgeId, activeWorkflow.id)}
+                    />
+                    <div className="absolute right-3 top-3 z-20" dir="rtl">
+                      <AddNodePopover workflow={activeWorkflow} onAdd={controller.addNode} />
+                    </div>
+                  </div>
                   {selectedNode && (
                     <WorkflowNodePanel
                       node={selectedNode}
@@ -679,6 +644,11 @@ export default function FlowBuilder({ controller, blocks, onOpenHttpBlock, delay
     setEditorOpen(true)
   }
 
+  const openMapEditor = () => {
+    controller.setView('dependencies')
+    setEditorOpen(true)
+  }
+
   const openIssue = (issue) => {
     controller.selectWorkflow(issue.workflowId)
     if (issue.nodeId) controller.selectNode(issue.nodeId, issue.workflowId)
@@ -705,12 +675,18 @@ export default function FlowBuilder({ controller, blocks, onOpenHttpBlock, delay
             </GhostButton>
           </div>
 
-          <WorkflowPreviewGrid workflows={workflows} issues={issues} onOpenWorkflow={openEditor} />
+          <WorkflowPreviewGrid workflows={workflows} issues={issues} dependencies={dependencyEdges} onOpenWorkflow={openEditor} />
 
           <div>
-            <div className="mb-2.5 flex items-center gap-2">
-              <Map className="size-4 text-stone-400" />
-              <h3 className="text-[13.5px] font-bold text-ink">מפת תהליכים</h3>
+            <div className="mb-2.5 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Map className="size-4 text-stone-400" />
+                <h3 className="text-[13.5px] font-bold text-ink">מפת תהליכים</h3>
+              </div>
+              <button type="button" onClick={openMapEditor} className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11.5px] font-bold text-teal-700 transition-colors hover:bg-teal-50 dark:text-teal-400 dark:hover:bg-teal-950/35">
+                <Pencil className="size-3.5" />
+                ערוך קשרים
+              </button>
             </div>
             <WorkflowDependencyView
               workflows={workflows}

@@ -70,6 +70,14 @@
  */
 
 /**
+ * A relationship drawn on the workflow map. It deliberately does not create
+ * or mutate nodes inside either workflow.
+ * @typedef {object} WorkflowConnection
+ * @property {string} id
+ * @property {string} targetWorkflowId
+ */
+
+/**
  * @typedef {object} Workflow
  * @property {string} id
  * @property {string} name
@@ -81,6 +89,7 @@
  * @property {WorkflowVariable[]} outputs
  * @property {WorkflowNode[]} nodes
  * @property {WorkflowEdge[]} edges
+ * @property {WorkflowConnection[]} connections
  */
 
 /**
@@ -88,9 +97,10 @@
  * @property {string} id
  * @property {string} source
  * @property {string} target
- * @property {string} callNodeId
- * @property {boolean} waitForCompletion
- * @property {WorkflowExecutionMode} executionMode
+ * @property {string=} callNodeId
+ * @property {string=} connectionId
+ * @property {boolean=} waitForCompletion
+ * @property {WorkflowExecutionMode=} executionMode
  * @property {boolean} targetExists
  */
 
@@ -322,6 +332,13 @@ export const createEdge = (source, target, overrides = {}) => ({
   ...(hasOwn(overrides, 'condition') && { condition: cleanText(overrides.condition) }),
 })
 
+/** @param {string} targetWorkflowId @param {Partial<WorkflowConnection>} [overrides] */
+export const createWorkflowConnection = (targetWorkflowId, overrides = {}) => ({
+  ...overrides,
+  id: overrides.id || newId(),
+  targetWorkflowId: cleanText(targetWorkflowId),
+})
+
 /**
  * Create a workflow. When nodes/edges are not explicitly supplied, it starts
  * with a connected START and END pair.
@@ -359,6 +376,11 @@ export const createWorkflow = (overrides = {}) => {
     outputs: Array.isArray(overrides.outputs) ? overrides.outputs.map(createWorkflowVariable) : [],
     nodes,
     edges,
+    connections: Array.isArray(overrides.connections)
+      ? overrides.connections.map((connection) =>
+          createWorkflowConnection(connection?.targetWorkflowId, connection),
+        )
+      : [],
   }
 }
 
@@ -603,6 +625,11 @@ export const duplicateWorkflowData = (workflow, overrides = {}) => {
     name: hasOwn(overrides, 'name') ? cleanText(overrides.name) : `${original.name} — עותק`,
     inputs: original.inputs.map((variable) => ({ ...variable, id: newId() })),
     outputs: original.outputs.map((variable) => ({ ...variable, id: newId() })),
+    connections: original.connections.map((connection) =>
+      createWorkflowConnection(
+        connection.targetWorkflowId === original.id ? workflowId : connection.targetWorkflowId,
+      ),
+    ),
     nodes,
     edges,
   })
@@ -658,6 +685,16 @@ export const buildWorkflowDependencyGraph = (workflows) => {
   const edges = []
 
   for (const workflow of normalized) {
+    for (const connection of workflow.connections) {
+      if (!connection.targetWorkflowId) continue
+      edges.push({
+        id: `connection:${workflow.id}:${connection.id}`,
+        source: workflow.id,
+        target: connection.targetWorkflowId,
+        connectionId: connection.id,
+        targetExists: workflowIds.has(connection.targetWorkflowId),
+      })
+    }
     for (const node of workflow.nodes) {
       if (node.type !== 'CALL_WORKFLOW' || !node.config.targetWorkflowId) continue
       const waitForCompletion = node.config.waitForCompletion !== false
@@ -834,6 +871,27 @@ export const validateWorkflow = (workflow, allWorkflows = [workflow], blockIds =
       }
       if (name) names.add(name)
     }
+  }
+
+  const connectionTargets = new Set()
+  for (const connection of current.connections) {
+    const targetId = cleanText(connection.targetWorkflowId)
+    if (!targetId || !workflowById.has(targetId)) {
+      add('WORKFLOW_CONNECTION_TARGET_NOT_FOUND', 'קיים קשר לתהליך שאינו קיים.', {
+        field: 'connections',
+      })
+    } else if (targetId === current.id) {
+      add('SELF_WORKFLOW_CONNECTION', 'תהליך אינו יכול להתחבר לעצמו.', { field: 'connections' })
+    } else if (connectionTargets.has(targetId)) {
+      add('DUPLICATE_WORKFLOW_CONNECTION', 'קיים קשר כפול לאותו תהליך יעד.', {
+        field: 'connections',
+      })
+    } else if (wouldCreateCycle(workflows, current.id, targetId)) {
+      add('CIRCULAR_WORKFLOW_CONNECTION', 'הקשר יוצר תלות מעגלית בין תהליכים.', {
+        field: 'connections',
+      })
+    }
+    if (targetId) connectionTargets.add(targetId)
   }
 
   const starts = current.nodes.filter((node) => node.type === 'START')

@@ -232,7 +232,7 @@ export function WorkflowCanvas({
         }}
         onNodesChange={(changes) => {
           for (const change of changes) {
-            if (change.type === 'position' && change.position && !change.dragging) onMoveNode(change.id, change.position)
+            if (change.type === 'position' && change.position) onMoveNode(change.id, change.position)
           }
         }}
         onNodesDelete={(deleted) => deleted.forEach((node) => onRemoveNode(node.id))}
@@ -323,8 +323,21 @@ function DependencyNode({ data }) {
 }
 
 const dependencyNodeTypes = { dependencyWorkflow: DependencyNode }
+const dependencyEdgeId = (dependency, index) =>
+  dependency.id ?? dependency.callNodeId ?? `dependency-${index}`
 
-export function WorkflowDependencyView({ workflows, dependencies, issues = [], onOpenWorkflow, className = 'h-[580px]' }) {
+export function WorkflowDependencyView({
+  workflows,
+  dependencies,
+  issues = [],
+  onOpenWorkflow,
+  className = 'h-[580px]',
+  editable = false,
+  onConnectWorkflows,
+  onDisconnectWorkflow,
+  isValidConnection,
+}) {
+  const [selectedEdgeId, setSelectedEdgeId] = useState(null)
   const layout = useMemo(() => dependencyLayout(workflows, dependencies), [workflows, dependencies])
   const invalidWorkflows = useMemo(
     () => new Set(issues.filter((issue) => issue.severity !== 'warning').map((issue) => issue.workflowId)),
@@ -345,30 +358,44 @@ export function WorkflowDependencyView({ workflows, dependencies, issues = [], o
       dependencies.map((dependency, index) => {
         const source = dependency.sourceWorkflowId ?? dependency.source
         const target = dependency.targetWorkflowId ?? dependency.target
+        const mapConnection = Boolean(dependency.connectionId)
         const asyncCall = (dependency.mode ?? dependency.executionMode) === 'ASYNC' || dependency.waitForCompletion === false
         return {
-          id: dependency.id ?? dependency.callNodeId ?? `dependency-${index}`,
+          id: dependencyEdgeId(dependency, index),
           source,
           target,
           type: 'smoothstep',
-          animated: !asyncCall,
-          label: asyncCall ? 'ברקע' : 'ממתין',
+          animated: !mapConnection && !asyncCall,
+          label: mapConnection ? 'קשר' : asyncCall ? 'ברקע' : 'ממתין',
           markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16 },
           style: asyncCall ? { strokeDasharray: '7 5' } : undefined,
           labelStyle: { fill: '#78716c', fontSize: 11, fontWeight: 600 },
           labelBgPadding: [5, 3],
           labelBgBorderRadius: 5,
+          selected: editable && dependencyEdgeId(dependency, index) === selectedEdgeId,
+          data: { dependency },
         }
       }),
-    [dependencies],
+    [dependencies, editable, selectedEdgeId],
   )
+
+  useEffect(() => {
+    if (selectedEdgeId && !edges.some((edge) => edge.id === selectedEdgeId)) setSelectedEdgeId(null)
+  }, [edges, selectedEdgeId])
+
+  const disconnectSelected = () => {
+    const edge = edges.find((item) => item.id === selectedEdgeId)
+    if (!edge) return
+    onDisconnectWorkflow?.(edge.data.dependency)
+    setSelectedEdgeId(null)
+  }
 
   if (workflows.length === 0) {
     return <div className="rounded-xl border border-dashed border-stone-300 px-6 py-16 text-center text-[14px] text-stone-400 dark:border-stone-700 dark:text-stone-500">אין עדיין תהליכים להצגה</div>
   }
 
   return (
-    <div className={`workflow-canvas overflow-hidden rounded-xl border border-stone-200 bg-stone-50/80 dark:border-stone-700 dark:bg-stone-950/45 ${className}`} dir="ltr">
+    <div className={`workflow-canvas relative overflow-hidden rounded-xl border border-stone-200 bg-stone-50/80 dark:border-stone-700 dark:bg-stone-950/45 ${className}`} dir="ltr">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -376,15 +403,38 @@ export function WorkflowDependencyView({ workflows, dependencies, issues = [], o
         fitView
         fitViewOptions={{ padding: 0.35 }}
         nodesDraggable={false}
-        nodesConnectable={false}
+        nodesConnectable={editable}
         edgesReconnectable={false}
         elementsSelectable
-        onNodeClick={(_, node) => onOpenWorkflow(node.id)}
+        deleteKeyCode={editable ? ['Backspace', 'Delete'] : []}
+        onNodeClick={(_, node) => onOpenWorkflow?.(node.id)}
+        onConnect={(connection) => onConnectWorkflows?.(connection)}
+        isValidConnection={isValidConnection}
+        onEdgeClick={(event, edge) => {
+          if (!editable) return
+          event.stopPropagation()
+          setSelectedEdgeId(edge.id)
+        }}
+        onPaneClick={() => setSelectedEdgeId(null)}
+        onEdgesDelete={(deleted) => {
+          if (!editable) return
+          deleted.forEach((edge) => onDisconnectWorkflow?.(edge.data?.dependency))
+        }}
         ariaLabelConfig={HEBREW_ARIA}
       >
         <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="currentColor" className="text-stone-300/65 dark:text-stone-700/60" />
         <Controls showInteractive={false} position="bottom-left" />
       </ReactFlow>
+      {editable && selectedEdgeId && (
+        <button
+          type="button"
+          onClick={disconnectSelected}
+          className="absolute start-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white/95 px-3 py-2 text-[12px] font-bold text-red-600 shadow-sm backdrop-blur transition-colors hover:bg-red-50 dark:border-red-900/70 dark:bg-stone-900/95 dark:text-red-400 dark:hover:bg-red-950/50"
+        >
+          <Unlink2 className="size-3.5" />
+          נתק קשר
+        </button>
+      )}
     </div>
   )
 }
