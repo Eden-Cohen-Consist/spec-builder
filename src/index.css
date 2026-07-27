@@ -1,4 +1,6 @@
 @import "tailwindcss";
+/* base.css only — style.css adds default node chrome that fights the Tailwind cards */
+@import "@xyflow/react/dist/base.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -101,4 +103,35 @@ body {
 }
 .code-scroll::-webkit-scrollbar-thumb:hover {
   background: #78716c;
+}
+
+/* Workflow canvas — React Flow's own tokens mapped onto the existing stone/teal palette */
+.wf-canvas .react-flow {
+  --xy-edge-stroke-default: #d6d3d1;
+  --xy-edge-stroke-selected-default: #0f766e;
+  --xy-handle-background-color-default: #a8a29e;
+  --xy-background-pattern-dots-color-default: #e7e5e4;
+}
+
+.dark .wf-canvas .react-flow {
+  --xy-edge-stroke-default: #44403c;
+  --xy-edge-stroke-selected-default: #2dd4bf;
+  --xy-handle-background-color-default: #57534e;
+  --xy-background-pattern-dots-color-default: #292524;
+}
+
+.wf-canvas .react-flow__handle {
+  width: 8px;
+  height: 8px;
+  border: none;
+}
+
+/* Edges are clickable targets — widen the hit area beyond the 1px stroke */
+.wf-canvas .react-flow__edge-interaction {
+  stroke-width: 18;
+}
+
+.wf-canvas .react-flow__attribution {
+  opacity: 0.35;
+  font-size: 10px;
 }

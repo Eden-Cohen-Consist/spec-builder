@@ -212,14 +212,44 @@ ${jsonBlock}
 `
 }
 
-export const compileSpec = ({ admin, business, flow, blocks }) => {
-  let stepCounter = 0
+// Per-type node payload. HTTP nodes only carry the link — the full request lives once, in
+// technicalBlocks, so the AI joins the two sections instead of reading two copies.
+const compileNodeConfig = (node, blocks) => {
+  const config = node.config ?? {}
+  switch (node.type) {
+    case 'HTTP_REQUEST': {
+      const block = blocks.find((b) => b.id === config.blockId && b.type === 'http')
+      return {
+        http: {
+          linkedBlockId: config.blockId || null,
+          linkedBlock: block
+            ? {
+                method: block.method,
+                endpoint: block.endpoint,
+                source: block.source,
+                destination: block.destination,
+              }
+            : null,
+          ...(config.notes?.trim() && { notes: config.notes }),
+        },
+      }
+    }
+    case 'DELAY':
+      return { delay: { duration: config.duration ?? '', unit: config.unit ?? 'MINUTES' } }
+    case 'PARALLEL':
+      return config.notes?.trim() ? { parallel: { notes: config.notes } } : {}
+    default:
+      return {}
+  }
+}
 
+export const compileSpec = ({ admin, business, workflows, blocks }) => {
   return {
     meta: {
       tool: 'Glassix Spec Builder',
       generatedAt: new Date().toISOString(),
       language: 'he',
+      schemaVersion: 2,
     },
     administrative: {
       clientName: admin.clientName,
@@ -234,17 +264,36 @@ export const compileSpec = ({ admin, business, flow, blocks }) => {
       businessGoal: business.goal,
       triggers: business.triggers.map((t) => t.text).filter((text) => text.trim()),
     },
-    logicalFlow: flow.map((node) =>
-      node.kind === 'step'
-        ? { type: 'step', step: ++stepCounter, description: node.text }
-        : {
-            type: 'branch',
-            paths: node.paths.map((path) => ({
-              condition: path.name,
-              actions: path.actions,
-            })),
-          },
-    ),
+    workflows: workflows.map((workflow) => {
+      const nodeIds = new Set(workflow.nodes.map((n) => n.id))
+      return {
+        id: workflow.id,
+        name: workflow.name,
+        ...(workflow.description?.trim() && { description: workflow.description }),
+        trigger: {
+          type: workflow.triggerType,
+          ...(workflow.triggerDescription?.trim() && { description: workflow.triggerDescription }),
+        },
+        nodes: workflow.nodes.map((node) => ({
+          id: node.id,
+          type: node.type,
+          title: node.title,
+          ...(node.description?.trim() && { description: node.description }),
+          ...compileNodeConfig(node, blocks),
+        })),
+        // Canvas positions are UI state — dropped so they don't distract the reviewer
+        edges: workflow.edges
+          .filter((edge) => nodeIds.has(edge.source) && nodeIds.has(edge.target))
+          .map((edge) => ({
+            id: edge.id,
+            from: edge.source,
+            to: edge.target,
+            ...(edge.sourceHandle && { branch: edge.sourceHandle }),
+            ...(edge.label?.trim() && { label: edge.label }),
+            ...(edge.condition?.trim() && { condition: edge.condition }),
+          })),
+      }
+    }),
     technicalBlocks: blocks.map((block) => {
       switch (block.type) {
         case 'http': {

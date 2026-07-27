@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Sparkles, AlertTriangle, RotateCcw, Check, CheckCircle2, CloudUpload, Sun, Moon, FileText } from 'lucide-react'
 import AdminSection from './components/AdminSection.jsx'
 import BusinessSection from './components/BusinessSection.jsx'
-import FlowBuilder from './components/FlowBuilder.jsx'
+import WorkflowSection from './components/workflow/WorkflowSection.jsx'
 import DynamicBlock from './components/DynamicBlock.jsx'
 import HttpBlock from './components/HttpBlock.jsx'
 import FreeTextBlock from './components/FreeTextBlock.jsx'
@@ -11,7 +11,9 @@ import TableBlock from './components/TableBlock.jsx'
 import AddBlockPopover from './components/AddBlockPopover.jsx'
 import ExportModal from './components/ExportModal.jsx'
 import MarkdownToWordModal from './components/MarkdownToWordModal.jsx'
-import { makeId, makeBlock, makeContactRow, makeTriggerRow, hasContactContent, isThirdParty, compileSpec } from './lib.js'
+import { makeBlock, makeContactRow, makeTriggerRow, hasContactContent, isThirdParty, compileSpec } from './lib.js'
+import { useWorkflows } from './workflow/useWorkflows.js'
+import { migrateWorkflows } from './workflow/migrate.js'
 
 const DRAFT_KEY = 'glassix-spec-builder:draft:v1'
 const THEME_KEY = 'glassix-spec-builder:theme'
@@ -24,7 +26,6 @@ const defaultAdmin = () => ({
   departmentId: '',
 })
 const defaultBusiness = () => ({ goal: '', triggers: [makeTriggerRow()] })
-const defaultFlow = () => [{ id: makeId(), kind: 'step', text: '' }]
 
 // Older drafts stored contacts as free text and http blocks without endpoint/method/headers
 const migrateAdmin = (saved) => {
@@ -98,11 +99,14 @@ const loadDraft = () => {
   }
 }
 const draft = loadDraft()
+// The legacy linear flow is round-tripped untouched so a rollback never loses text the PM
+// already wrote — migrateWorkflows only reads it when no `workflows` key exists yet
+const legacyFlow = Array.isArray(draft?.flow) ? draft.flow : null
 
 export default function App() {
   const [admin, setAdmin] = useState(() => (draft?.admin ? migrateAdmin(draft.admin) : defaultAdmin()))
   const [business, setBusiness] = useState(() => migrateBusiness(draft?.business))
-  const [flow, setFlow] = useState(draft?.flow?.length ? draft.flow : defaultFlow())
+  const wf = useWorkflows(() => migrateWorkflows(draft))
   const [blocks, setBlocks] = useState(() => migrateBlocks(draft?.blocks ?? []))
   const [invalidIds, setInvalidIds] = useState(() => new Set())
   const [adminInvalid, setAdminInvalid] = useState(false)
@@ -116,11 +120,20 @@ export default function App() {
   useEffect(() => {
     setSaveState('saving')
     const t = setTimeout(() => {
-      localStorage.setItem(DRAFT_KEY, JSON.stringify({ admin, business, flow, blocks }))
+      localStorage.setItem(
+        DRAFT_KEY,
+        JSON.stringify({
+          admin,
+          business,
+          workflows: wf.workflows,
+          blocks,
+          ...(legacyFlow && { flow: legacyFlow }),
+        }),
+      )
       setSaveState('saved')
     }, 600)
     return () => clearTimeout(t)
-  }, [admin, business, flow, blocks])
+  }, [admin, business, wf.workflows, blocks])
 
   useEffect(() => {
     if (!toast) return
@@ -160,7 +173,7 @@ export default function App() {
     localStorage.removeItem(DRAFT_KEY)
     setAdmin(defaultAdmin())
     setBusiness(defaultBusiness())
-    setFlow(defaultFlow())
+    wf.reset()
     setBlocks([])
     setInvalidIds(new Set())
     setAdminInvalid(false)
@@ -191,7 +204,19 @@ export default function App() {
         ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       return
     }
-    setSpec(compileSpec({ admin, business, flow, blocks }))
+    const workflowErrors = wf.issues.filter((i) => i.severity === 'error')
+    if (workflowErrors.length > 0) {
+      const first = workflowErrors[0]
+      wf.setActiveWorkflowId(first.workflowId)
+      if (first.nodeId) wf.selectNode(first.nodeId)
+      setToast({
+        message: `יש ${workflowErrors.length} בעיות בתהליכים — יש לתקן אותן לפני יצירת האפיון`,
+        tone: 'error',
+      })
+      document.getElementById('section-workflows')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      return
+    }
+    setSpec(compileSpec({ admin, business, workflows: wf.workflows, blocks }))
   }
 
   const renderBlockBody = (block) => {
@@ -285,7 +310,7 @@ export default function App() {
         <div className="space-y-5">
           <AdminSection value={admin} onChange={changeAdmin} invalid={adminInvalid} delay={60} />
           <BusinessSection value={business} onChange={setBusiness} delay={120} />
-          <FlowBuilder flow={flow} onChange={setFlow} delay={180} />
+          <WorkflowSection api={wf} blocks={blocks} dark={dark} delay={180} />
         </div>
 
         <div className="animate-rise flex items-center gap-3 pb-4 pt-9" style={{ animationDelay: '240ms' }}>
