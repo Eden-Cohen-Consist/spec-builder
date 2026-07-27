@@ -1,5 +1,5 @@
 import { Plus, Trash2, X } from 'lucide-react'
-import { Field, Input, GhostButton, DeleteButton } from './ui.jsx'
+import { Field, Input, Textarea, GhostButton, DeleteButton } from './ui.jsx'
 import { makeTableColumn, makeTableRow } from '../lib.js'
 
 export default function TableBlock({ block, onUpdate }) {
@@ -31,6 +31,15 @@ export default function TableBlock({ block, onUpdate }) {
           value={block.name}
           onChange={(e) => onUpdate({ name: e.target.value })}
           placeholder="למשל: סטטוסים אפשריים"
+        />
+      </Field>
+
+      <Field label="טקסט חופשי" hint="אופציונלי — הסבר או הנחיות לטבלה" className="mb-4">
+        <Textarea
+          rows={3}
+          value={block.freeText ?? ''}
+          onChange={(e) => onUpdate({ freeText: e.target.value })}
+          placeholder="מידע נוסף שהטבלה לבדה לא מתארת..."
         />
       </Field>
 

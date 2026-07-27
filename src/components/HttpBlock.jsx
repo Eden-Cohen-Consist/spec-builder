@@ -208,7 +208,7 @@ function HeadersEditor({ headers, onChange }) {
   );
 }
 
-function MappingTable({ mapping, onChange }) {
+function MappingTable({ mapping, source, destination, onChange }) {
   const setRow = (id, patch) =>
     onChange(
       mapping.map((row) => (row.id === id ? { ...row, ...patch } : row)),
@@ -226,10 +226,10 @@ function MappingTable({ mapping, onChange }) {
           <thead>
             <tr className="border-b border-stone-200 bg-stone-50 text-[12px] font-semibold text-stone-500 dark:border-stone-800 dark:bg-stone-800/50 dark:text-stone-400">
               <th className="w-[22%] px-3 py-2.5 text-start font-semibold">
-                שדה מקור
+                {source?.trim() || "שדה מקור"}
               </th>
               <th className="w-[22%] px-3 py-2.5 text-start font-semibold">
-                שדה יעד
+                {destination?.trim() || "שדה יעד"}
               </th>
               <th className="w-[15%] px-3 py-2.5 text-start font-semibold">
                 סוג
@@ -442,6 +442,8 @@ export default function HttpBlock({ block, invalid, onUpdate }) {
 
       <MappingTable
         mapping={block.mapping}
+        source={block.source}
+        destination={block.destination}
         onChange={(mapping) => onUpdate({ mapping })}
       />
 
@@ -451,6 +453,60 @@ export default function HttpBlock({ block, invalid, onUpdate }) {
           אבטחה וטיפול בשגיאות
         </h4>
         <div className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="rounded-xl border border-stone-200 p-3.5 dark:border-stone-800">
+              <Checkbox
+                checked={block.ipWhitelistRequired}
+                onChange={(ipWhitelistRequired) =>
+                  onUpdate({ ipWhitelistRequired })
+                }
+                label="נדרשת החרגת כתובות IP (Whitelist)"
+              />
+              {block.ipWhitelistRequired && (
+                <Field
+                  label="כתובות IP להחרגה"
+                  hint="כתובת אחת בכל שורה"
+                  className="animate-pop mt-3"
+                >
+                  <Textarea
+                    dir="ltr"
+                    rows={3}
+                    value={block.whitelistedIps}
+                    onChange={(e) =>
+                      onUpdate({ whitelistedIps: e.target.value })
+                    }
+                    placeholder={"203.0.113.10\n198.51.100.0/24"}
+                    className="text-left font-mono !text-[12.5px]"
+                  />
+                </Field>
+              )}
+            </div>
+            <div className="rounded-xl border border-stone-200 p-3.5 dark:border-stone-800">
+              <Checkbox
+                checked={block.certificateRequired}
+                onChange={(certificateRequired) =>
+                  onUpdate({ certificateRequired })
+                }
+                label="נדרשת תעודה (Certificate)"
+              />
+              {block.certificateRequired && (
+                <Field
+                  label="פרטי התעודה"
+                  hint="סוג, פורמט והנחיות מסירה"
+                  className="animate-pop mt-3"
+                >
+                  <Textarea
+                    rows={3}
+                    value={block.certificateDetails}
+                    onChange={(e) =>
+                      onUpdate({ certificateDetails: e.target.value })
+                    }
+                    placeholder="למשל: תעודת mTLS בפורמט PEM"
+                  />
+                </Field>
+              )}
+            </div>
+          </div>
           <Field label="הערות כלליות" hint="מה קורה כשמתקבלת שגיאת 400/500?">
             <Textarea
               rows={3}

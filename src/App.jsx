@@ -11,7 +11,15 @@ import TableBlock from './components/TableBlock.jsx'
 import AddBlockPopover from './components/AddBlockPopover.jsx'
 import ExportModal from './components/ExportModal.jsx'
 import MarkdownToWordModal from './components/MarkdownToWordModal.jsx'
-import { makeBlock, makeContactRow, makeTriggerRow, hasContactContent, isThirdParty, compileSpec } from './lib.js'
+import {
+  makeBlock,
+  makeContactRow,
+  makeDepartmentRow,
+  makeTriggerRow,
+  hasContactContent,
+  isThirdParty,
+  compileSpec,
+} from './lib.js'
 import { useWorkflows } from './workflow/useWorkflows.js'
 import { migrateWorkflows } from './workflow/migrate.js'
 
@@ -23,7 +31,7 @@ const defaultAdmin = () => ({
   pmName: '',
   contacts: [makeContactRow()],
   departmentCreated: false,
-  departmentId: '',
+  departments: [makeDepartmentRow()],
 })
 const defaultBusiness = () => ({ goal: '', triggers: [makeTriggerRow()] })
 
@@ -67,7 +75,15 @@ const migrateBlocks = (blocks) => {
   const pending = []
   for (const block of blocks) {
     if (block.type === 'http') {
-      const httpBlock = { title: '', endpoint: '', method: 'GET', headers: [], authType: 'None', fallback: '', ...block }
+      const httpBlock = {
+        title: '',
+        endpoint: '',
+        method: 'GET',
+        headers: [],
+        authType: 'None',
+        fallback: '',
+        ...block,
+      }
       for (const security of pending.splice(0)) foldSecurityIntoHttp(httpBlock, security)
       migrated.push(httpBlock)
     } else if (block.type === 'security') {

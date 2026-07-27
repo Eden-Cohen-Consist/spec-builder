@@ -10,12 +10,13 @@ export default function TestDataBlock({ block, onUpdate }) {
 
   return (
     <div>
-      <div className="overflow-hidden rounded-xl border border-stone-200 dark:border-stone-800">
-        <table className="w-full text-[13.5px]">
+      <div className="overflow-x-auto rounded-xl border border-stone-200 dark:border-stone-800">
+        <table className="w-full min-w-[560px] text-[13.5px]">
           <thead>
             <tr className="border-b border-stone-200 bg-stone-50 text-[12px] font-semibold text-stone-500 dark:border-stone-800 dark:bg-stone-800/50 dark:text-stone-400">
-              <th className="w-[38%] px-3 py-2.5 text-start font-semibold">שדה</th>
-              <th className="px-3 py-2.5 text-start font-semibold">ערך לבדיקה</th>
+              <th className="w-[30%] px-3 py-2.5 text-start font-semibold">שדה</th>
+              <th className="w-[32%] px-3 py-2.5 text-start font-semibold">ערך לבדיקה</th>
+              <th className="px-3 py-2.5 text-start font-semibold">הערות</th>
               <th className="w-10" />
             </tr>
           </thead>
@@ -37,6 +38,14 @@ export default function TestDataBlock({ block, onUpdate }) {
                     onChange={(e) => setRow(row.id, { value: e.target.value })}
                     placeholder="0501234567"
                     className="cell-input font-mono !text-[12.5px]"
+                  />
+                </td>
+                <td>
+                  <input
+                    value={row.notes ?? ''}
+                    onChange={(e) => setRow(row.id, { notes: e.target.value })}
+                    placeholder="הערות לבדיקה..."
+                    className="cell-input"
                   />
                 </td>
                 <td className="text-center">

@@ -1,7 +1,7 @@
 import { Plus, Trash2 } from "lucide-react";
 import LockedSection from "./LockedSection.jsx";
 import { Field, Input, Checkbox, GhostButton, DeleteButton } from "./ui.jsx";
-import { makeContactRow, hasContactContent } from "../lib.js";
+import { makeContactRow, makeDepartmentRow, hasContactContent } from "../lib.js";
 
 const invalidCell =
   "rounded-lg ring-2 ring-inset ring-red-400/70 dark:ring-red-500/50";
@@ -18,6 +18,20 @@ export default function AdminSection({ value, onChange, invalid, delay }) {
     set({ contacts: value.contacts.filter((c) => c.id !== id) });
   const addContact = () =>
     set({ contacts: [...value.contacts, makeContactRow()] });
+  const setDepartment = (id, patch) =>
+    set({
+      departments: value.departments.map((department) =>
+        department.id === id ? { ...department, ...patch } : department,
+      ),
+    });
+  const removeDepartment = (id) =>
+    set({
+      departments: value.departments.filter(
+        (department) => department.id !== id,
+      ),
+    });
+  const addDepartment = () =>
+    set({ departments: [...value.departments, makeDepartmentRow()] });
 
   return (
     <LockedSection
@@ -154,16 +168,96 @@ export default function AdminSection({ value, onChange, invalid, delay }) {
           label="הוקמה מחלקה במערכת?"
         />
         {value.departmentCreated && (
-          <div className="animate-pop mt-3.5 sm:w-1/2">
-            <Field label="מזהה המחלקה (Department ID)">
-              <Input
-                dir="ltr"
-                value={value.departmentId}
-                onChange={(e) => set({ departmentId: e.target.value })}
-                placeholder="12345"
-                className="text-left font-mono !text-[13.5px]"
-              />
-            </Field>
+          <div className="animate-pop mt-3.5">
+            <div className="mb-1.5 flex items-baseline gap-2 text-[13px] font-semibold text-stone-600 dark:text-stone-300">
+              פרטי מחלקות
+              <span className="font-normal text-stone-400 dark:text-stone-500">
+                ניתן להוסיף מספר מחלקות
+              </span>
+            </div>
+            <div className="overflow-x-auto rounded-xl border border-stone-200 dark:border-stone-800">
+              <table className="w-full min-w-[680px] text-[13.5px]">
+                <thead>
+                  <tr className="border-b border-stone-200 bg-stone-50 text-[12px] font-semibold text-stone-500 dark:border-stone-800 dark:bg-stone-800/50 dark:text-stone-400">
+                    <th className="w-[30%] px-3 py-2.5 text-start font-semibold">
+                      שם המחלקה
+                    </th>
+                    <th className="w-[22%] px-3 py-2.5 text-start font-semibold">
+                      מזהה קצר
+                    </th>
+                    <th className="px-3 py-2.5 text-start font-semibold">
+                      מזהה מחלקה (UUID)
+                    </th>
+                    <th className="w-10" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
+                  {value.departments.map((department) => (
+                    <tr
+                      key={department.id}
+                      className="group/row transition-colors hover:bg-stone-50/60 dark:hover:bg-stone-800/30"
+                    >
+                      <td>
+                        <input
+                          value={department.name}
+                          onChange={(e) =>
+                            setDepartment(department.id, {
+                              name: e.target.value,
+                            })
+                          }
+                          placeholder="שירות לקוחות"
+                          className="cell-input font-medium"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          dir="ltr"
+                          value={department.shortId}
+                          onChange={(e) =>
+                            setDepartment(department.id, {
+                              shortId: e.target.value,
+                            })
+                          }
+                          placeholder="12345"
+                          className="cell-input text-left font-mono !text-[12.5px]"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          dir="ltr"
+                          value={department.uuid}
+                          onChange={(e) =>
+                            setDepartment(department.id, {
+                              uuid: e.target.value,
+                            })
+                          }
+                          placeholder="550e8400-e29b-41d4-a716-446655440000"
+                          className="cell-input text-left font-mono !text-[12px]"
+                        />
+                      </td>
+                      <td className="text-center">
+                        {value.departments.length > 1 && (
+                          <DeleteButton
+                            aria-label="מחיקת מחלקה"
+                            onClick={() => removeDepartment(department.id)}
+                            className="opacity-0 focus-visible:opacity-100 group-hover/row:opacity-100"
+                          >
+                            <Trash2 className="size-3.5" />
+                          </DeleteButton>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <GhostButton
+              icon={Plus}
+              onClick={addDepartment}
+              className="mt-2.5"
+            >
+              הוסף מחלקה
+            </GhostButton>
           </div>
         )}
       </div>

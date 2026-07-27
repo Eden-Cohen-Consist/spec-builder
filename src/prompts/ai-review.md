@@ -33,7 +33,7 @@ _Interrogation Style:_ Ask one or two focused questions at a time. Do not overwh
 
 ## 1. רקע ומידע מנהלתי (Administrative Context)
 
-- Present a Markdown table containing: Client Name, Project Manager, Contacts, Department, and any relevant historical development notes.
+- Present a Markdown table containing: Client Name, Project Manager, Contacts, and every Department. For each department include its name, short ID, and UUID.
 
 ## 2. צורך עסקי ומטרת הפיתוח (Business Logic & Goal)
 
@@ -60,9 +60,10 @@ For every entry in `technicalBlocks` of type `httpIntegration`, provide the foll
 
 - **Direction:** [Source] -> [Destination] (e.g., `Glassix -> Consist`)
 - **Endpoint / Method:** Details (if available).
-- **Authentication:** How does it authenticate?
+- **Security:** Authentication method, IP whitelist addresses, and certificate requirements/details when supplied.
 - **Data Mapping Table:** Source Field | Target Field | Type | Required/Optional | Notes.
 - **JSON Payloads:** Raw Request and Response examples in standard JSON code blocks.
+- For `dynamicTable` entries, preserve the supplied columns and rows and include the optional `freeText` explanation.
 
 ## 5. טיפול בשגיאות ומקרי קצה (Error Handling & Edge Cases)
 
@@ -70,7 +71,7 @@ For every entry in `technicalBlocks` of type `httpIntegration`, provide the foll
 
 ## 6. נתוני בדיקה (Test Cases)
 
-- A table of mock data or real test parameters (Phone numbers, IDs, Tokens) the developer can use immediately to verify the code.
+- A table of mock data or real test parameters (Phone numbers, IDs, Tokens) the developer can use immediately to verify the code, including each entry's notes.
 
 # IMPORTANT
 

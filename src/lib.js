@@ -22,6 +22,13 @@ export const makeContactRow = () => ({ id: makeId(), name: '', email: '', phone:
 
 export const makeTriggerRow = () => ({ id: makeId(), text: '' })
 
+export const makeDepartmentRow = () => ({
+  id: makeId(),
+  name: '',
+  shortId: '',
+  uuid: '',
+})
+
 export const hasContactContent = (contact) =>
   [contact.name, contact.email, contact.phone, contact.jobTitle].some((v) => v?.trim())
 
@@ -36,7 +43,7 @@ export const makeMappingRow = () => ({
 
 export const makeHeaderRow = () => ({ id: makeId(), key: '', value: '' })
 
-export const makeTestRow = () => ({ id: makeId(), key: '', value: '' })
+export const makeTestRow = () => ({ id: makeId(), key: '', value: '', notes: '' })
 
 export const makeTableColumn = () => ({ id: makeId(), label: '' })
 
@@ -181,6 +188,10 @@ export const makeBlock = (type) => {
         responsePayload: '',
         mapping: [makeMappingRow()],
         authType: 'None',
+        ipWhitelistRequired: false,
+        whitelistedIps: '',
+        certificateRequired: false,
+        certificateDetails: '',
         fallback: '',
       }
     case 'freeText':
@@ -191,6 +202,7 @@ export const makeBlock = (type) => {
       return {
         ...base,
         name: '',
+        freeText: '',
         columns: [makeTableColumn(), makeTableColumn()],
         rows: [makeTableRow()],
       }
@@ -298,7 +310,7 @@ export const compileSpec = ({ admin, business, workflows, blocks }) => {
       tool: 'Glassix Spec Builder',
       generatedAt: new Date().toISOString(),
       language: 'he',
-      schemaVersion: 3,
+      schemaVersion: 4,
     },
     administrative: {
       clientName: admin.clientName,
@@ -307,7 +319,9 @@ export const compileSpec = ({ admin, business, workflows, blocks }) => {
         .filter(hasContactContent)
         .map(({ name, email, phone, jobTitle }) => ({ name, email, phone, jobTitle })),
       departmentCreated: admin.departmentCreated,
-      ...(admin.departmentCreated && { departmentId: admin.departmentId }),
+      ...(admin.departmentCreated && {
+        departments: admin.departments.map(({ name, shortId, uuid }) => ({ name, shortId, uuid })),
+      }),
     },
     businessNeed: {
       businessGoal: business.goal,
@@ -355,6 +369,12 @@ export const compileSpec = ({ admin, business, workflows, blocks }) => {
               })),
             security: {
               authType: block.authType,
+              ...(block.ipWhitelistRequired && {
+                ipWhitelist: { required: true, addresses: block.whitelistedIps },
+              }),
+              ...(block.certificateRequired && {
+                certificate: { required: true, details: block.certificateDetails },
+              }),
               errorFallback: block.fallback,
             },
           }
@@ -369,14 +389,15 @@ export const compileSpec = ({ admin, business, workflows, blocks }) => {
           return {
             type: 'testData',
             entries: block.rows
-              .filter((row) => row.key.trim() || row.value.trim())
-              .map((row) => ({ key: row.key, value: row.value })),
+              .filter((row) => row.key.trim() || row.value.trim() || row.notes?.trim())
+              .map((row) => ({ key: row.key, value: row.value, notes: row.notes ?? '' })),
           }
         case 'table': {
           const columnLabels = block.columns.map((col, i) => col.label.trim() || `עמודה ${i + 1}`)
           return {
             type: 'dynamicTable',
             name: block.name,
+            ...(block.freeText?.trim() && { freeText: block.freeText }),
             columns: columnLabels,
             rows: block.rows
               .filter((row) => block.columns.some((col) => (row.cells[col.id] ?? '').trim()))
