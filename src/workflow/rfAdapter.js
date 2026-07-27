@@ -1,9 +1,18 @@
 /** Every business node renders through the same custom component. */
 export const RF_NODE_TYPE = 'wf'
 
+export const decisionSourceHandleCount = (outgoing) => {
+  const highestUsed = outgoing.reduce((max, edge) => {
+    const match = /^branch-(\d+)$/.exec(edge.sourceHandle ?? '')
+    return match ? Math.max(max, Number(match[1])) : max
+  }, -1)
+  return Math.max(2, outgoing.length + 1, highestUsed + 1)
+}
+
 export const toRfNodes = (workflow, issuesByNode) =>
   workflow.nodes.map((node) => {
     const issues = issuesByNode.get(node.id) ?? []
+    const outgoing = workflow.edges.filter((e) => e.source === node.id)
     return {
       id: node.id,
       type: RF_NODE_TYPE,
@@ -13,7 +22,7 @@ export const toRfNodes = (workflow, issuesByNode) =>
         hasError: issues.some((i) => i.severity === 'error'),
         hasWarning: issues.some((i) => i.severity === 'warning'),
         issueCount: issues.length,
-        branchCount: workflow.edges.filter((e) => e.source === node.id).length,
+        sourceHandleCount: node.type === 'DECISION' ? decisionSourceHandleCount(outgoing) : 1,
       },
     }
   })

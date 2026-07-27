@@ -13,11 +13,19 @@ export default function WorkflowSection({ api, blocks, dark, delay }) {
 
   useEffect(() => {
     if (!fullscreen) return
+    const htmlOverflow = document.documentElement.style.overflow
+    const bodyOverflow = document.body.style.overflow
+    document.documentElement.style.overflow = 'hidden'
+    document.body.style.overflow = 'hidden'
     const onKeyDown = (e) => {
       if (e.key === 'Escape') setFullscreen(false)
     }
     document.addEventListener('keydown', onKeyDown)
-    return () => document.removeEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+      document.documentElement.style.overflow = htmlOverflow
+      document.body.style.overflow = bodyOverflow
+    }
   }, [fullscreen])
 
   const workflow = api.activeWorkflow
@@ -52,7 +60,7 @@ export default function WorkflowSection({ api, blocks, dark, delay }) {
       </LockedSection>
 
       {fullscreen && workflow && (
-        <div className="animate-fade fixed inset-0 z-50 bg-paper p-4">
+        <div className="animate-fade fixed inset-0 z-[70] overscroll-none bg-paper p-4">
           <WorkflowCanvas
             workflow={workflow}
             blocks={blocks}

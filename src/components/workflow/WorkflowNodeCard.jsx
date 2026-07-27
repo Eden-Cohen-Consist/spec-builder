@@ -18,12 +18,12 @@ const handleClass = '!size-2 !border-0 !bg-stone-400 dark:!bg-stone-600'
  * handles (top in, bottom out) keep the graph direction unambiguous under RTL.
  */
 function WorkflowNodeCard({ data, selected }) {
-  const { node, hasError, hasWarning, branchCount } = data
+  const { node, hasError, hasWarning, sourceHandleCount } = data
   const meta = NODE_META[node.type] ?? FALLBACK_META
   const Icon = meta.icon
 
   const isDecision = node.type === 'DECISION'
-  const sourceHandles = isDecision ? Math.max(branchCount, 2) : 1
+  const sourceHandles = isDecision ? sourceHandleCount : 1
 
   const ring = hasError
     ? 'border-red-300 ring-2 ring-red-500/20 dark:border-red-500/50'

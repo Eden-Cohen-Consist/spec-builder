@@ -3,6 +3,7 @@ import { NODE_META, WORKFLOW_TRIGGER_TYPES } from './constants.js'
 import { gridPosition, makeWorkflow, makeWorkflowEdge, makeWorkflowNode } from './model.js'
 
 const str = (value, fallback = '') => (typeof value === 'string' ? value : fallback)
+const activeNodeType = (type) => (type === 'PARALLEL' || type === 'DELAY' ? 'ACTION' : type)
 
 const firstLine = (text) => str(text).split('\n')[0].trim()
 
@@ -45,7 +46,7 @@ export const sanitizeWorkflows = (list) => {
           ...node,
           id: claimId(node.id, usedNodeIds),
           workflowId: id,
-          type: str(node.type, 'ACTION'),
+          type: activeNodeType(str(node.type, 'ACTION')),
           title: str(node.title),
           description: str(node.description),
           position: isPosition(node.position)

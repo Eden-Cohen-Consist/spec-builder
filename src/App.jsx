@@ -67,7 +67,7 @@ const migrateBlocks = (blocks) => {
   const pending = []
   for (const block of blocks) {
     if (block.type === 'http') {
-      const httpBlock = { endpoint: '', method: 'GET', headers: [], authType: 'None', fallback: '', ...block }
+      const httpBlock = { title: '', endpoint: '', method: 'GET', headers: [], authType: 'None', fallback: '', ...block }
       for (const security of pending.splice(0)) foldSecurityIntoHttp(httpBlock, security)
       migrated.push(httpBlock)
     } else if (block.type === 'security') {

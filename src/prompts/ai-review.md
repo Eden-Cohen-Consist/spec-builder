@@ -42,18 +42,21 @@ _Interrogation Style:_ Ask one or two focused questions at a time. Do not overwh
 
 ## 3. תהליכים עסקיים (Business Workflows)
 
-The input JSON contains a `workflows` array. Each entry is an independent process built from `nodes` and `edges` — NOT a flat list of steps. Render one `### [workflow name]` sub-section per workflow, in the order they appear.
+The input JSON contains a `workflows` array. Each entry is an independent process, described by a `steps` array that is a graph flattened into reading order — a step may branch to several others, so it is NOT necessarily a simple linear list. Render one `### [workflow name]` sub-section per workflow, in the order they appear.
+
+Every step has a unique `name` (the PM's own wording — use it verbatim when referring to the step), a `type` (`START`, `ACTION`, `DECISION`, `HTTP_REQUEST`, `END`), an optional `description`, and a `next` array. Each `next` entry names the following step (`to`, matching that step's `name`) plus an optional `when` (the branch label) and `condition`. A step with no `next` is an end of a path. There are no ids in this JSON — names are the only references, and identical wording was already de-duplicated with a numeric suffix.
 
 For each workflow:
 
 - Open with a single sentence naming its trigger (`trigger.type` plus `trigger.description`).
-- Then detail the internal flow as a flat, single-level numbered list. Reconstruct the order by walking `edges` from the `START` node — do NOT rely on the array order of `nodes`.
-- For a `DECISION` node, DO NOT use nested bullets. Write each route as bold inline text using the edge `label`/`condition` (e.g., "**אם הלקוח קיים:** [action paragraph]").
-- For a `HTTP_REQUEST` node, reference the linked integration by its `http.linkedBlock` direction and endpoint and state that the full contract appears in section 4. Do NOT duplicate headers, payloads, or mapping tables here.
+- Then detail the internal flow as a flat, single-level numbered list, following the `steps` order (already the walk order from `START`).
+- For a `DECISION` step, DO NOT use nested bullets. Write each route as bold inline text using its `next` entry's `when`/`condition` and the target step name (e.g., "**אם הלקוח קיים:** [action paragraph]").
+- For an `HTTP_REQUEST` step, reference the integration by the `integrationBlock` name (it matches an entry's `name` in `technicalBlocks`) and state that the full contract appears in section 4. Do NOT duplicate headers, payloads, or mapping tables here. If `integrationBlock` is `null`, the PM never linked one — treat it as a missing detail and interrogate in Phase 1.
+- A step marked `unreachableFromStart: true` is not wired into the flow. Do not invent a place for it; flag it to the PM as a broken or leftover step.
 
 ## 4. אינטגרציות ובקשות API (API Architecture)
 
-For every entry in `technicalBlocks` of type `httpIntegration`, provide the following. When a workflow node links to it (`http.linkedBlockId`), name the workflow and step it belongs to so the developer can connect section 3 to this one:
+For every entry in `technicalBlocks` of type `httpIntegration`, provide the following. Head the sub-section with the block's `name`, and when a workflow step points at it (`integrationBlock` equals that `name`), name the workflow and step so the developer can connect section 3 to this one:
 
 - **Direction:** [Source] -> [Destination] (e.g., `Glassix -> Consist`)
 - **Endpoint / Method:** Details (if available).

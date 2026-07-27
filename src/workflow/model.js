@@ -3,7 +3,7 @@ import { NODE_META } from './constants.js'
 
 /**
  * @typedef {'MANUAL'|'FORM_SUBMIT'|'WEBHOOK'|'EVENT'|'SCHEDULE'} WorkflowTriggerType
- * @typedef {'START'|'ACTION'|'DECISION'|'HTTP_REQUEST'|'PARALLEL'|'DELAY'|'END'} WorkflowNodeType
+ * @typedef {'START'|'ACTION'|'DECISION'|'HTTP_REQUEST'|'END'} WorkflowNodeType
  *
  * @typedef {Object} WorkflowNode
  * @property {string} id
@@ -44,10 +44,6 @@ export const defaultNodeConfig = (type) => {
   switch (type) {
     case 'HTTP_REQUEST':
       return { blockId: '', notes: '' }
-    case 'DELAY':
-      return { duration: '', unit: 'MINUTES' }
-    case 'PARALLEL':
-      return { notes: '' }
     default:
       return {}
   }

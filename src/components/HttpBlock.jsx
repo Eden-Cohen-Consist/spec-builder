@@ -342,7 +342,17 @@ export default function HttpBlock({ block, invalid, onUpdate }) {
 
   return (
     <div>
-      <CurlImport onImport={applyCurl} />
+      <Field label="כותרת הבלוק" hint="תופיע בבחירת הבלוק מתוך שלב קריאת API">
+        <Input
+          value={block.title ?? ""}
+          onChange={(e) => onUpdate({ title: e.target.value })}
+          placeholder="למשל: פתיחת לקוח ב-Priority"
+        />
+      </Field>
+
+      <div className="mt-4">
+        <CurlImport onImport={applyCurl} />
+      </div>
 
       <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-3">
         <Field label="מערכת מקור">

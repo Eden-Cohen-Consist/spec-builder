@@ -145,10 +145,10 @@ function Canvas({ workflow, blocks, dark, fullscreen, onToggleFullscreen }) {
         fitViewOptions={fitViewOptions}
         minZoom={0.3}
         maxZoom={1.5}
-        // The canvas sits inside a long scrolling form — it must never capture the wheel
-        zoomOnScroll={false}
+        // In the form the wheel scrolls the page; in fullscreen it controls the canvas
+        zoomOnScroll={fullscreen}
         panOnScroll={false}
-        preventScrolling={false}
+        preventScrolling={fullscreen}
         selectionOnDrag={false}
         multiSelectionKeyCode={null}
         deleteKeyCode={null}

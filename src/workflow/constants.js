@@ -1,4 +1,4 @@
-import { Play, Flag, GitBranch, Globe, Columns3, Timer, Zap } from 'lucide-react'
+import { Play, Flag, GitBranch, Globe, Zap } from 'lucide-react'
 
 export const WORKFLOW_TRIGGER_TYPES = ['MANUAL', 'FORM_SUBMIT', 'WEBHOOK', 'EVENT', 'SCHEDULE']
 
@@ -19,7 +19,7 @@ export const TRIGGER_HINTS = {
   SCHEDULE: 'באיזו תדירות ובאיזו שעה',
 }
 
-export const WORKFLOW_NODE_TYPES = ['START', 'ACTION', 'DECISION', 'HTTP_REQUEST', 'PARALLEL', 'DELAY', 'END']
+export const WORKFLOW_NODE_TYPES = ['START', 'ACTION', 'DECISION', 'HTTP_REQUEST', 'END']
 
 // Same shape as BLOCK_META in src/constants.js so node cards reuse the block accent vocabulary
 export const NODE_META = {
@@ -55,22 +55,6 @@ export const NODE_META = {
     accentDark: '#60a5fa',
     tint: 'rgba(29, 78, 216, 0.08)',
   },
-  PARALLEL: {
-    label: 'פעולות במקביל',
-    hint: 'כמה מסלולים שרצים יחד',
-    icon: Columns3,
-    accent: '#7c3aed',
-    accentDark: '#a78bfa',
-    tint: 'rgba(124, 58, 237, 0.08)',
-  },
-  DELAY: {
-    label: 'המתנה',
-    hint: 'השהיה לפני המשך התהליך',
-    icon: Timer,
-    accent: '#b45309',
-    accentDark: '#fbbf24',
-    tint: 'rgba(180, 83, 9, 0.08)',
-  },
   END: {
     label: 'סיום',
     hint: 'נקודת היציאה מהתהליך',
@@ -79,13 +63,4 @@ export const NODE_META = {
     accentDark: '#a8a29e',
     tint: 'rgba(87, 83, 78, 0.08)',
   },
-}
-
-export const DELAY_UNITS = ['SECONDS', 'MINUTES', 'HOURS', 'DAYS']
-
-export const DELAY_UNIT_LABELS = {
-  SECONDS: 'שניות',
-  MINUTES: 'דקות',
-  HOURS: 'שעות',
-  DAYS: 'ימים',
 }

@@ -3,7 +3,8 @@ import { Field, Select, Textarea } from '../../ui.jsx'
 const blockLabel = (block) => {
   const route = [block.source, block.destination].filter((part) => part?.trim()).join(' ← ')
   const call = [block.method, block.endpoint].filter((part) => part?.trim()).join(' ')
-  return call || route || 'בלוק אינטגרציה ללא פרטים'
+  const details = call || route
+  return [block.title?.trim(), details].filter(Boolean).join(' — ') || 'בלוק אינטגרציה ללא פרטים'
 }
 
 /**

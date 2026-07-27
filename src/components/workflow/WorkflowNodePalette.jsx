@@ -4,7 +4,7 @@ import { Plus } from 'lucide-react'
 import { NODE_META } from '../../workflow/constants.js'
 
 // START is seeded with the workflow and there is only ever meant to be one
-const ADDABLE = ['ACTION', 'DECISION', 'HTTP_REQUEST', 'PARALLEL', 'DELAY', 'END']
+const ADDABLE = ['ACTION', 'DECISION', 'HTTP_REQUEST', 'END']
 
 const MENU_WIDTH = 196
 const MARGIN = 8
@@ -83,7 +83,7 @@ export default function WorkflowNodePalette({ onAdd }) {
             ref={menuRef}
             dir="rtl"
             style={{ position: 'fixed', top: menuPos.top, left: menuPos.left, width: MENU_WIDTH }}
-            className="animate-pop z-50 rounded-xl border border-stone-200 bg-white p-1.5 shadow-xl shadow-stone-900/10 dark:border-stone-700 dark:bg-stone-800 dark:shadow-black/40"
+            className="animate-pop z-[80] rounded-xl border border-stone-200 bg-white p-1.5 shadow-xl shadow-stone-900/10 dark:border-stone-700 dark:bg-stone-800 dark:shadow-black/40"
           >
             {ADDABLE.map((type) => {
               const meta = NODE_META[type]

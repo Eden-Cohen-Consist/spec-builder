@@ -3,7 +3,6 @@ import { X, Trash2, CircleAlert, TriangleAlert } from "lucide-react";
 import { Field, Input, Textarea } from "../ui.jsx";
 import DecisionNodePanel from "./panels/DecisionNodePanel.jsx";
 import HttpRequestNodePanel from "./panels/HttpRequestNodePanel.jsx";
-import SimpleNodePanel from "./panels/SimpleNodePanel.jsx";
 import { useWorkflowsApi } from "../../workflow/useWorkflows.js";
 import { NODE_META } from "../../workflow/constants.js";
 
@@ -109,9 +108,6 @@ export default function WorkflowNodePanel({ workflow, node, blocks, onClose }) {
             blocks={blocks}
             onConfig={onConfig}
           />
-        )}
-        {(node.type === "DELAY" || node.type === "PARALLEL") && (
-          <SimpleNodePanel node={node} onConfig={onConfig} />
         )}
       </div>
 

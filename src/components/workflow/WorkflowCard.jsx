@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { MoreHorizontal, Copy, Trash2, ArrowRight, ArrowLeft, CircleAlert, TriangleAlert, Check } from 'lucide-react'
 import { useWorkflowsApi } from '../../workflow/useWorkflows.js'
 import { TRIGGER_LABELS } from '../../workflow/constants.js'
@@ -30,12 +31,16 @@ function StatusDot({ errors, warnings }) {
 export default function WorkflowCard({ workflow, index, total, active, onSelect, onRequestDelete, tabIndex }) {
   const api = useWorkflowsApi()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [menuPos, setMenuPos] = useState(null)
+  const buttonRef = useRef(null)
   const menuRef = useRef(null)
 
   useEffect(() => {
     if (!menuOpen) return
     const onPointerDown = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false)
+      if (!buttonRef.current?.contains(e.target) && !menuRef.current?.contains(e.target)) {
+        setMenuOpen(false)
+      }
     }
     const onKeyDown = (e) => {
       if (e.key === 'Escape') setMenuOpen(false)
@@ -45,6 +50,26 @@ export default function WorkflowCard({ workflow, index, total, active, onSelect,
     return () => {
       document.removeEventListener('pointerdown', onPointerDown)
       document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [menuOpen])
+
+  useEffect(() => {
+    if (!menuOpen) return
+    const place = () => {
+      const rect = buttonRef.current?.getBoundingClientRect()
+      if (!rect) return
+      const width = 192
+      setMenuPos({
+        top: rect.bottom + 4,
+        left: Math.min(Math.max(8, rect.right - width), window.innerWidth - width - 8),
+      })
+    }
+    place()
+    window.addEventListener('resize', place)
+    window.addEventListener('scroll', place, true)
+    return () => {
+      window.removeEventListener('resize', place)
+      window.removeEventListener('scroll', place, true)
     }
   }, [menuOpen])
 
@@ -69,7 +94,7 @@ export default function WorkflowCard({ workflow, index, total, active, onSelect,
         aria-selected={active}
         tabIndex={tabIndex}
         onClick={onSelect}
-        className="block w-full text-start focus:outline-none focus-visible:ring-[3px] focus-visible:ring-teal-600/20 rounded-lg"
+        className="block w-full rounded-lg pe-7 text-start focus:outline-none focus-visible:ring-[3px] focus-visible:ring-teal-600/20"
       >
         <div className="flex items-start justify-between gap-2">
           <span className="line-clamp-1 text-[14.5px] font-bold text-ink">
@@ -89,8 +114,9 @@ export default function WorkflowCard({ workflow, index, total, active, onSelect,
         </div>
       </button>
 
-      <div className="absolute end-2 top-2" ref={menuRef}>
+      <div className="absolute end-2 top-2">
         <button
+          ref={buttonRef}
           type="button"
           aria-label={`פעולות עבור ${workflow.name.trim() || 'תהליך ללא שם'}`}
           aria-expanded={menuOpen}
@@ -99,9 +125,17 @@ export default function WorkflowCard({ workflow, index, total, active, onSelect,
         >
           <MoreHorizontal className="size-4" />
         </button>
+      </div>
 
-        {menuOpen && (
-          <div className="animate-pop absolute end-0 top-full z-50 mt-1 w-48 rounded-xl border border-stone-200 bg-white p-1 shadow-xl shadow-stone-900/10 dark:border-stone-700 dark:bg-stone-800 dark:shadow-black/40">
+      {menuOpen &&
+        menuPos &&
+        createPortal(
+          <div
+            ref={menuRef}
+            dir="rtl"
+            style={{ position: 'fixed', top: menuPos.top, left: menuPos.left, width: 192 }}
+            className="animate-pop z-[60] rounded-xl border border-stone-200 bg-white p-1 shadow-xl shadow-stone-900/10 dark:border-stone-700 dark:bg-stone-800 dark:shadow-black/40"
+          >
             <button
               type="button"
               className={menuItem}
@@ -150,9 +184,9 @@ export default function WorkflowCard({ workflow, index, total, active, onSelect,
               <Trash2 className="size-3.5" />
               מחיקה
             </button>
-          </div>
+          </div>,
+          document.body,
         )}
-      </div>
     </div>
   )
 }
