@@ -50,10 +50,8 @@ function CurlImport({ onImport }) {
 
   if (!open) {
     return (
-      <div className="mb-4">
-        <GhostButton icon={Terminal} onClick={() => setOpen(true)}>
-          ייבוא מ-cURL
-        </GhostButton>
+      <div className="flex justify-start">
+        <GhostButton onClick={() => setOpen(true)}>ייבוא מ-cURL</GhostButton>
       </div>
     );
   }
@@ -342,6 +340,10 @@ export default function HttpBlock({ block, invalid, onUpdate }) {
 
   return (
     <div>
+      <div className="">
+        <CurlImport onImport={applyCurl} />
+      </div>
+
       <Field label="כותרת הבלוק" hint="תופיע בבחירת הבלוק מתוך שלב קריאת API">
         <Input
           value={block.title ?? ""}
@@ -350,10 +352,30 @@ export default function HttpBlock({ block, invalid, onUpdate }) {
         />
       </Field>
 
-      <div className="mt-4">
-        <CurlImport onImport={applyCurl} />
+      <div className="mt-4 grid grid-cols-[128px_1fr] items-end gap-3">
+        <Field label="Method">
+          <Select
+            value={block.method}
+            onChange={(e) => onUpdate({ method: e.target.value })}
+            className="font-mono !text-[13.5px]"
+          >
+            {HTTP_METHODS.map((method) => (
+              <option key={method} value={method}>
+                {method}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <Field label={<span dir="ltr">Endpoint</span>} hint="כתובת ה-API המלאה">
+          <Input
+            dir="ltr"
+            value={block.endpoint}
+            onChange={(e) => onUpdate({ endpoint: e.target.value })}
+            placeholder="https://api.example.com/v1/tickets"
+            className="text-left font-mono !text-[13.5px]"
+          />
+        </Field>
       </div>
-
       <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-3">
         <Field label="מערכת מקור">
           <Input
@@ -385,31 +407,6 @@ export default function HttpBlock({ block, invalid, onUpdate }) {
             value={block.destination}
             onChange={(e) => onUpdate({ destination: e.target.value })}
             placeholder="Salesforce / Priority / Consist..."
-          />
-        </Field>
-      </div>
-
-      <div className="mt-4 grid grid-cols-[128px_1fr] items-end gap-3">
-        <Field label="Method">
-          <Select
-            value={block.method}
-            onChange={(e) => onUpdate({ method: e.target.value })}
-            className="font-mono !text-[13.5px]"
-          >
-            {HTTP_METHODS.map((method) => (
-              <option key={method} value={method}>
-                {method}
-              </option>
-            ))}
-          </Select>
-        </Field>
-        <Field label={<span dir="ltr">Endpoint</span>} hint="כתובת ה-API המלאה">
-          <Input
-            dir="ltr"
-            value={block.endpoint}
-            onChange={(e) => onUpdate({ endpoint: e.target.value })}
-            placeholder="https://api.example.com/v1/tickets"
-            className="text-left font-mono !text-[13.5px]"
           />
         </Field>
       </div>
@@ -453,7 +450,7 @@ export default function HttpBlock({ block, invalid, onUpdate }) {
           אבטחה וטיפול בשגיאות
         </h4>
         <div className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-1">
             <div className="rounded-xl border border-stone-200 p-3.5 dark:border-stone-800">
               <Checkbox
                 checked={block.ipWhitelistRequired}

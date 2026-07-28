@@ -1,6 +1,13 @@
-import { Lock } from 'lucide-react'
+import { Lock } from "lucide-react";
 
-export default function LockedSection({ id, number, title, subtitle, delay = 0, children }) {
+export default function LockedSection({
+  id,
+  number,
+  title,
+  subtitle,
+  delay = 0,
+  children,
+}) {
   return (
     <section
       id={id}
@@ -13,16 +20,22 @@ export default function LockedSection({ id, number, title, subtitle, delay = 0, 
             {number}
           </span>
           <div>
-            <h2 className="font-display text-[19px] font-bold leading-tight text-ink">{title}</h2>
-            {subtitle && <p className="mt-0.5 text-[13px] text-stone-500 dark:text-stone-400">{subtitle}</p>}
+            <h2 className="font-display text-[19px] font-bold leading-tight text-ink">
+              {title}
+            </h2>
+            {subtitle && (
+              <p className="mt-0.5 text-[13px] text-stone-500 dark:text-stone-400">
+                {subtitle}
+              </p>
+            )}
           </div>
         </div>
         <span className="mt-1 inline-flex shrink-0 items-center gap-1 rounded-full border border-amber-200/70 bg-amber-50 px-2.5 py-1 text-[11.5px] font-semibold text-amber-700 dark:border-amber-500/25 dark:bg-amber-950/40 dark:text-amber-400">
+          חובה
           <Lock className="size-3" />
-          קבוע
         </span>
       </header>
       <div className="px-6 py-5">{children}</div>
     </section>
-  )
+  );
 }

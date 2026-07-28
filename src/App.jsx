@@ -373,7 +373,7 @@ export default function App() {
             >
               <RotateCcw className="size-4" />
             </button>
-            <button
+            {/* <button
               type="button"
               title="המרת אפיון AI ל-Word"
               aria-label="המרת אפיון AI ל-Word"
@@ -381,7 +381,7 @@ export default function App() {
               className="rounded-lg p-2 text-stone-400 transition-colors hover:bg-stone-100 hover:text-ink dark:text-stone-500 dark:hover:bg-stone-800"
             >
               <FileText className="size-4" />
-            </button>
+            </button> */}
           </div>
         </div>
       </header>
@@ -395,6 +395,14 @@ export default function App() {
             מלאו את הסעיפים הקבועים, הוסיפו בלוקים טכניים — וקבלו JSON מסודר
             להעברה למפתח.
           </p>
+          <button
+            type="button"
+            onClick={() => setWordModalOpen(true)}
+            className="mt-5 inline-flex items-center gap-2 rounded-xl border border-teal-700/25 bg-teal-50 px-4 py-2.5 text-[14px] font-semibold text-teal-800 transition-colors hover:border-teal-700/40 hover:bg-teal-100 dark:border-teal-500/30 dark:bg-teal-500/10 dark:text-teal-300 dark:hover:border-teal-500/50 dark:hover:bg-teal-500/15"
+          >
+            <FileText className="size-4 shrink-0" />
+            המרת אפיון AI ל-Word
+          </button>
         </div>
 
         <div className="space-y-5">
