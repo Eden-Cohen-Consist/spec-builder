@@ -1,5 +1,5 @@
-import { memo } from 'react'
-import { Handle, Position } from '@xyflow/react'
+import { memo, useEffect } from 'react'
+import { Handle, Position, useUpdateNodeInternals } from '@xyflow/react'
 import { CircleAlert, TriangleAlert, HelpCircle } from 'lucide-react'
 import { NODE_META } from '../../workflow/constants.js'
 
@@ -17,13 +17,21 @@ const handleClass = '!size-2 !border-0 !bg-stone-400 dark:!bg-stone-600'
  * The single custom node type — `data.node.type` picks the icon and accent. Vertical
  * handles (top in, bottom out) keep the graph direction unambiguous under RTL.
  */
-function WorkflowNodeCard({ data, selected }) {
+function WorkflowNodeCard({ id, data, selected }) {
   const { node, hasError, hasWarning, sourceHandleCount } = data
   const meta = NODE_META[node.type] ?? FALLBACK_META
   const Icon = meta.icon
 
   const isDecision = node.type === 'DECISION'
   const sourceHandles = isDecision ? sourceHandleCount : 1
+
+  // React Flow caches handle positions when it measures the node, and only re-measures on a
+  // size change. Adding a DECISION route adds a handle and shifts every existing one sideways
+  // without resizing the card, so without this the edges keep leaving from the old spots.
+  const updateNodeInternals = useUpdateNodeInternals()
+  useEffect(() => {
+    updateNodeInternals(id)
+  }, [id, sourceHandles, updateNodeInternals])
 
   const ring = hasError
     ? 'border-red-300 ring-2 ring-red-500/20 dark:border-red-500/50'
