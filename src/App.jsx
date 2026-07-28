@@ -1,16 +1,26 @@
-import { useState, useEffect } from 'react'
-import { Sparkles, AlertTriangle, RotateCcw, Check, CheckCircle2, CloudUpload, Sun, Moon, FileText } from 'lucide-react'
-import AdminSection from './components/AdminSection.jsx'
-import BusinessSection from './components/BusinessSection.jsx'
-import WorkflowSection from './components/workflow/WorkflowSection.jsx'
-import DynamicBlock from './components/DynamicBlock.jsx'
-import HttpBlock from './components/HttpBlock.jsx'
-import FreeTextBlock from './components/FreeTextBlock.jsx'
-import TestDataBlock from './components/TestDataBlock.jsx'
-import TableBlock from './components/TableBlock.jsx'
-import AddBlockPopover from './components/AddBlockPopover.jsx'
-import ExportModal from './components/ExportModal.jsx'
-import MarkdownToWordModal from './components/MarkdownToWordModal.jsx'
+import { useState, useEffect } from "react";
+import {
+  Sparkles,
+  AlertTriangle,
+  RotateCcw,
+  Check,
+  CheckCircle2,
+  CloudUpload,
+  Sun,
+  Moon,
+  FileText,
+} from "lucide-react";
+import AdminSection from "./components/AdminSection.jsx";
+import BusinessSection from "./components/BusinessSection.jsx";
+import WorkflowSection from "./components/workflow/WorkflowSection.jsx";
+import DynamicBlock from "./components/DynamicBlock.jsx";
+import HttpBlock from "./components/HttpBlock.jsx";
+import FreeTextBlock from "./components/FreeTextBlock.jsx";
+import TestDataBlock from "./components/TestDataBlock.jsx";
+import TableBlock from "./components/TableBlock.jsx";
+import AddBlockPopover from "./components/AddBlockPopover.jsx";
+import ExportModal from "./components/ExportModal.jsx";
+import MarkdownToWordModal from "./components/MarkdownToWordModal.jsx";
 import {
   makeBlock,
   makeContactRow,
@@ -19,122 +29,150 @@ import {
   hasContactContent,
   isThirdParty,
   compileSpec,
-} from './lib.js'
-import { useWorkflows } from './workflow/useWorkflows.js'
-import { migrateWorkflows } from './workflow/migrate.js'
+} from "./lib.js";
+import { useWorkflows } from "./workflow/useWorkflows.js";
+import { migrateWorkflows } from "./workflow/migrate.js";
 
-const DRAFT_KEY = 'glassix-spec-builder:draft:v1'
-const THEME_KEY = 'glassix-spec-builder:theme'
+const DRAFT_KEY = "glassix-spec-builder:draft:v1";
+const THEME_KEY = "glassix-spec-builder:theme";
 
 const defaultAdmin = () => ({
-  clientName: '',
-  pmName: '',
+  clientName: "",
+  pmName: "",
   contacts: [makeContactRow()],
   departmentCreated: false,
   departments: [makeDepartmentRow()],
-})
-const defaultBusiness = () => ({ goal: '', triggers: [makeTriggerRow()] })
+});
+const defaultBusiness = () => ({ goal: "", triggers: [makeTriggerRow()] });
 
 // Older drafts stored contacts as free text and http blocks without endpoint/method/headers
 const migrateAdmin = (saved) => {
-  const admin = { ...defaultAdmin(), ...saved }
+  const admin = { ...defaultAdmin(), ...saved };
   if (!Array.isArray(admin.contacts) || admin.contacts.length === 0) {
     const legacyLines =
-      typeof admin.contacts === 'string'
-        ? admin.contacts.split('\n').map((line) => line.trim()).filter(Boolean)
-        : []
+      typeof admin.contacts === "string"
+        ? admin.contacts
+            .split("\n")
+            .map((line) => line.trim())
+            .filter(Boolean)
+        : [];
     admin.contacts = legacyLines.length
       ? legacyLines.map((line) => ({ ...makeContactRow(), name: line }))
-      : [makeContactRow()]
+      : [makeContactRow()];
   }
-  return admin
-}
+  return admin;
+};
 
 // Older drafts stored a single trigger string instead of a triggers list
 const migrateBusiness = (saved) => {
-  if (!saved) return defaultBusiness()
-  const goal = saved.goal ?? ''
-  if (Array.isArray(saved.triggers) && saved.triggers.length > 0) return { goal, triggers: saved.triggers }
+  if (!saved) return defaultBusiness();
+  const goal = saved.goal ?? "";
+  if (Array.isArray(saved.triggers) && saved.triggers.length > 0)
+    return { goal, triggers: saved.triggers };
   return {
     goal,
-    triggers: [{ ...makeTriggerRow(), text: typeof saved.trigger === 'string' ? saved.trigger : '' }],
-  }
-}
+    triggers: [
+      {
+        ...makeTriggerRow(),
+        text: typeof saved.trigger === "string" ? saved.trigger : "",
+      },
+    ],
+  };
+};
 
 const foldSecurityIntoHttp = (httpBlock, security) => {
-  if (security.authType && security.authType !== 'None') httpBlock.authType = security.authType
+  if (security.authType && security.authType !== "None")
+    httpBlock.authType = security.authType;
   if (security.fallback?.trim()) {
-    httpBlock.fallback = [httpBlock.fallback, security.fallback].filter((t) => t?.trim()).join('\n')
+    httpBlock.fallback = [httpBlock.fallback, security.fallback]
+      .filter((t) => t?.trim())
+      .join("\n");
   }
-}
+};
 
 // Security is now part of the http block — fold legacy standalone security blocks into
 // their nearest http block; orphans with content become a free-text block so nothing is lost
 const migrateBlocks = (blocks) => {
-  const migrated = []
-  const pending = []
+  const migrated = [];
+  const pending = [];
   for (const block of blocks) {
-    if (block.type === 'http') {
+    if (block.type === "http") {
       const httpBlock = {
-        title: '',
-        endpoint: '',
-        method: 'GET',
+        title: "",
+        endpoint: "",
+        method: "GET",
         headers: [],
-        authType: 'None',
-        fallback: '',
+        authType: "None",
+        fallback: "",
         ...block,
-      }
-      for (const security of pending.splice(0)) foldSecurityIntoHttp(httpBlock, security)
-      migrated.push(httpBlock)
-    } else if (block.type === 'security') {
-      const target = migrated.findLast((b) => b.type === 'http')
-      if (target) foldSecurityIntoHttp(target, block)
-      else pending.push(block)
+      };
+      for (const security of pending.splice(0))
+        foldSecurityIntoHttp(httpBlock, security);
+      migrated.push(httpBlock);
+    } else if (block.type === "security") {
+      const target = migrated.findLast((b) => b.type === "http");
+      if (target) foldSecurityIntoHttp(target, block);
+      else pending.push(block);
     } else {
-      migrated.push(block)
+      migrated.push(block);
     }
   }
   for (const security of pending) {
-    if (!security.fallback?.trim() && (!security.authType || security.authType === 'None')) continue
+    if (
+      !security.fallback?.trim() &&
+      (!security.authType || security.authType === "None")
+    )
+      continue;
     migrated.push({
-      ...makeBlock('freeText'),
-      title: 'אבטחה וטיפול בשגיאות',
-      text: [`Authentication: ${security.authType ?? 'None'}`, security.fallback ?? '']
+      ...makeBlock("freeText"),
+      title: "אבטחה וטיפול בשגיאות",
+      text: [
+        `Authentication: ${security.authType ?? "None"}`,
+        security.fallback ?? "",
+      ]
         .filter((t) => t.trim())
-        .join('\n'),
-    })
+        .join("\n"),
+    });
   }
-  return migrated
-}
+  return migrated;
+};
 
 const loadDraft = () => {
   try {
-    return JSON.parse(localStorage.getItem(DRAFT_KEY))
+    return JSON.parse(localStorage.getItem(DRAFT_KEY));
   } catch {
-    return null
+    return null;
   }
-}
-const draft = loadDraft()
+};
+const draft = loadDraft();
 // The legacy linear flow is round-tripped untouched so a rollback never loses text the PM
 // already wrote — migrateWorkflows only reads it when no `workflows` key exists yet
-const legacyFlow = Array.isArray(draft?.flow) ? draft.flow : null
+const legacyFlow = Array.isArray(draft?.flow) ? draft.flow : null;
 
 export default function App() {
-  const [admin, setAdmin] = useState(() => (draft?.admin ? migrateAdmin(draft.admin) : defaultAdmin()))
-  const [business, setBusiness] = useState(() => migrateBusiness(draft?.business))
-  const wf = useWorkflows(() => migrateWorkflows(draft))
-  const [blocks, setBlocks] = useState(() => migrateBlocks(draft?.blocks ?? []))
-  const [invalidIds, setInvalidIds] = useState(() => new Set())
-  const [adminInvalid, setAdminInvalid] = useState(false)
-  const [toast, setToast] = useState(null)
-  const [spec, setSpec] = useState(null)
-  const [wordModalOpen, setWordModalOpen] = useState(false)
-  const [saveState, setSaveState] = useState('idle')
-  const [dark, setDark] = useState(() => document.documentElement.classList.contains('dark'))
+  const [admin, setAdmin] = useState(() =>
+    draft?.admin ? migrateAdmin(draft.admin) : defaultAdmin(),
+  );
+  const [business, setBusiness] = useState(() =>
+    migrateBusiness(draft?.business),
+  );
+  const wf = useWorkflows(() => migrateWorkflows(draft));
+  const [blocks, setBlocks] = useState(() =>
+    migrateBlocks(draft?.blocks ?? []),
+  );
+  const [invalidIds, setInvalidIds] = useState(() => new Set());
+  const [adminInvalid, setAdminInvalid] = useState(false);
+  const [toast, setToast] = useState(null);
+  const [spec, setSpec] = useState(null);
+  const [wordModalOpen, setWordModalOpen] = useState(false);
+  const [saveState, setSaveState] = useState("idle");
+  const [dark, setDark] = useState(() =>
+    document.documentElement.classList.contains("dark"),
+  );
 
   // Debounced autosave to localStorage
   useEffect(() => {
-    setSaveState('saving')
+    setSaveState("saving");
     const t = setTimeout(() => {
       localStorage.setItem(
         DRAFT_KEY,
@@ -145,116 +183,147 @@ export default function App() {
           blocks,
           ...(legacyFlow && { flow: legacyFlow }),
         }),
-      )
-      setSaveState('saved')
-    }, 600)
-    return () => clearTimeout(t)
-  }, [admin, business, wf.workflows, blocks])
+      );
+      setSaveState("saved");
+    }, 600);
+    return () => clearTimeout(t);
+  }, [admin, business, wf.workflows, blocks]);
 
   useEffect(() => {
-    if (!toast) return
-    const t = setTimeout(() => setToast(null), 4500)
-    return () => clearTimeout(t)
-  }, [toast])
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4500);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   const toggleTheme = () => {
-    const next = !dark
-    setDark(next)
-    document.documentElement.classList.toggle('dark', next)
-    localStorage.setItem(THEME_KEY, next ? 'dark' : 'light')
-  }
+    const next = !dark;
+    setDark(next);
+    document.documentElement.classList.toggle("dark", next);
+    localStorage.setItem(THEME_KEY, next ? "dark" : "light");
+  };
 
   const changeAdmin = (next) => {
-    setAdmin(next)
-    setAdminInvalid(false)
-  }
+    setAdmin(next);
+    setAdminInvalid(false);
+  };
 
-  const addBlock = (type) => setBlocks((prev) => [...prev, makeBlock(type)])
+  const addBlock = (type) => setBlocks((prev) => [...prev, makeBlock(type)]);
 
   const updateBlock = (id, patch) => {
-    setBlocks((prev) => prev.map((b) => (b.id === id ? { ...b, ...patch } : b)))
+    setBlocks((prev) =>
+      prev.map((b) => (b.id === id ? { ...b, ...patch } : b)),
+    );
     // Editing a flagged block clears its validation highlight
     setInvalidIds((prev) => {
-      if (!prev.has(id)) return prev
-      const next = new Set(prev)
-      next.delete(id)
-      return next
-    })
-  }
+      if (!prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+  };
 
-  const deleteBlock = (id) => setBlocks((prev) => prev.filter((b) => b.id !== id))
+  const deleteBlock = (id) =>
+    setBlocks((prev) => prev.filter((b) => b.id !== id));
 
   const resetDraft = () => {
-    if (!window.confirm('לאפס את הטיוטה? כל הנתונים שהוזנו יימחקו.')) return
-    localStorage.removeItem(DRAFT_KEY)
-    setAdmin(defaultAdmin())
-    setBusiness(defaultBusiness())
-    wf.reset()
-    setBlocks([])
-    setInvalidIds(new Set())
-    setAdminInvalid(false)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
+    if (!window.confirm("לאפס את הטיוטה? כל הנתונים שהוזנו יימחקו.")) return;
+    localStorage.removeItem(DRAFT_KEY);
+    setAdmin(defaultAdmin());
+    setBusiness(defaultBusiness());
+    wf.reset();
+    setBlocks([]);
+    setInvalidIds(new Set());
+    setAdminInvalid(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const generate = () => {
     const badContacts = admin.contacts.some(
-      (c) => hasContactContent(c) && (!c.name.trim() || (!c.email.trim() && !c.phone.trim())),
-    )
+      (c) =>
+        hasContactContent(c) &&
+        (!c.name.trim() || (!c.email.trim() && !c.phone.trim())),
+    );
     if (badContacts) {
-      setAdminInvalid(true)
-      setToast({ message: 'נא להשלים אנשי קשר — שם חובה, וכן אימייל או טלפון', tone: 'error' })
-      document.getElementById('section-admin')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      return
+      setAdminInvalid(true);
+      setToast({
+        message: "נא להשלים אנשי קשר — שם חובה, וכן אימייל או טלפון",
+        tone: "error",
+      });
+      document
+        .getElementById("section-admin")
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
     }
     const offenders = blocks.filter(
       (b) =>
-        b.type === 'http' &&
+        b.type === "http" &&
         isThirdParty(b.destination) &&
         (!b.requestPayload.trim() || !b.responsePayload.trim()),
-    )
+    );
     if (offenders.length > 0) {
-      setInvalidIds(new Set(offenders.map((b) => b.id)))
-      setToast({ message: 'נא למלא Request/Response JSON Payloads עבור אינטגרציות צד שלישי', tone: 'error' })
+      setInvalidIds(new Set(offenders.map((b) => b.id)));
+      setToast({
+        message:
+          "נא למלא Request/Response JSON Payloads עבור אינטגרציות צד שלישי",
+        tone: "error",
+      });
       document
         .getElementById(`block-${offenders[0].id}`)
-        ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      return
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
     }
-    const workflowErrors = wf.issues.filter((i) => i.severity === 'error')
+    const workflowErrors = wf.issues.filter((i) => i.severity === "error");
     if (workflowErrors.length > 0) {
-      const first = workflowErrors[0]
-      wf.setActiveWorkflowId(first.workflowId)
-      if (first.nodeId) wf.selectNode(first.nodeId)
+      const first = workflowErrors[0];
+      wf.setActiveWorkflowId(first.workflowId);
+      if (first.nodeId) wf.selectNode(first.nodeId);
       setToast({
         message: `יש ${workflowErrors.length} בעיות בתהליכים — יש לתקן אותן לפני יצירת האפיון`,
-        tone: 'error',
-      })
-      document.getElementById('section-workflows')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      return
+        tone: "error",
+      });
+      document
+        .getElementById("section-workflows")
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
     }
-    setSpec(compileSpec({ admin, business, workflows: wf.workflows, blocks }))
-  }
+    setSpec(compileSpec({ admin, business, workflows: wf.workflows, blocks }));
+  };
 
   const renderBlockBody = (block) => {
     switch (block.type) {
-      case 'http':
+      case "http":
         return (
           <HttpBlock
             block={block}
             invalid={invalidIds.has(block.id)}
             onUpdate={(patch) => updateBlock(block.id, patch)}
           />
-        )
-      case 'freeText':
-        return <FreeTextBlock block={block} onUpdate={(patch) => updateBlock(block.id, patch)} />
-      case 'testData':
-        return <TestDataBlock block={block} onUpdate={(patch) => updateBlock(block.id, patch)} />
-      case 'table':
-        return <TableBlock block={block} onUpdate={(patch) => updateBlock(block.id, patch)} />
+        );
+      case "freeText":
+        return (
+          <FreeTextBlock
+            block={block}
+            onUpdate={(patch) => updateBlock(block.id, patch)}
+          />
+        );
+      case "testData":
+        return (
+          <TestDataBlock
+            block={block}
+            onUpdate={(patch) => updateBlock(block.id, patch)}
+          />
+        );
+      case "table":
+        return (
+          <TableBlock
+            block={block}
+            onUpdate={(patch) => updateBlock(block.id, patch)}
+          />
+        );
       default:
-        return null
+        return null;
     }
-  }
+  };
 
   return (
     <div className="min-h-screen pb-40">
@@ -265,7 +334,9 @@ export default function App() {
               א
             </span>
             <div>
-              <div className="font-display text-[17px] font-bold leading-none text-ink">בונה אפיונים</div>
+              <div className="font-display text-[17px] font-bold leading-none text-ink">
+                בונה אפיונים
+              </div>
               <div className="mt-1 text-[11.5px] leading-none text-stone-500 dark:text-stone-400">
                 אפיונים טכניים לאינטגרציות · Glassix
               </div>
@@ -273,7 +344,7 @@ export default function App() {
           </div>
           <div className="flex items-center gap-2">
             <span className="hidden items-center gap-1.5 text-[12px] text-stone-400 sm:flex dark:text-stone-500">
-              {saveState === 'saving' ? (
+              {saveState === "saving" ? (
                 <>
                   <CloudUpload className="size-3.5" />
                   שומר...
@@ -287,8 +358,8 @@ export default function App() {
             </span>
             <button
               type="button"
-              title={dark ? 'מעבר למצב בהיר' : 'מעבר למצב כהה'}
-              aria-label={dark ? 'מעבר למצב בהיר' : 'מעבר למצב כהה'}
+              title={dark ? "מעבר למצב בהיר" : "מעבר למצב כהה"}
+              aria-label={dark ? "מעבר למצב בהיר" : "מעבר למצב כהה"}
               onClick={toggleTheme}
               className="rounded-lg p-2 text-stone-400 transition-colors hover:bg-stone-100 hover:text-ink dark:text-stone-500 dark:hover:bg-stone-800"
             >
@@ -317,20 +388,37 @@ export default function App() {
 
       <main className="mx-auto max-w-3xl px-5">
         <div className="animate-rise pb-8 pt-10">
-          <h1 className="font-display text-[34px] font-black leading-tight text-ink">אפיון טכני חדש</h1>
+          <h1 className="font-display text-[34px] font-black leading-tight text-ink">
+            אפיון טכני חדש
+          </h1>
           <p className="mt-2 text-[15px] text-stone-500 dark:text-stone-400">
-            מלאו את הסעיפים הקבועים, הוסיפו בלוקים טכניים — וקבלו JSON מסודר להעברה למפתח.
+            מלאו את הסעיפים הקבועים, הוסיפו בלוקים טכניים — וקבלו JSON מסודר
+            להעברה למפתח.
           </p>
         </div>
 
         <div className="space-y-5">
-          <AdminSection value={admin} onChange={changeAdmin} invalid={adminInvalid} delay={60} />
-          <BusinessSection value={business} onChange={setBusiness} delay={120} />
+          <AdminSection
+            value={admin}
+            onChange={changeAdmin}
+            invalid={adminInvalid}
+            delay={60}
+          />
+          <BusinessSection
+            value={business}
+            onChange={setBusiness}
+            delay={120}
+          />
           <WorkflowSection api={wf} blocks={blocks} dark={dark} delay={180} />
         </div>
 
-        <div className="animate-rise flex items-center gap-3 pb-4 pt-9" style={{ animationDelay: '240ms' }}>
-          <h2 className="font-display text-[20px] font-bold text-ink">בלוקים טכניים</h2>
+        <div
+          className="animate-rise flex items-center gap-3 pb-4 pt-9"
+          style={{ animationDelay: "240ms" }}
+        >
+          <h2 className="font-display text-[20px] font-bold text-ink">
+            בלוקים טכניים
+          </h2>
           {blocks.length > 0 && (
             <span className="rounded-full bg-stone-200/70 px-2 py-0.5 text-[11.5px] font-bold text-stone-500 dark:bg-stone-800 dark:text-stone-400">
               {blocks.length}
@@ -351,11 +439,15 @@ export default function App() {
             </DynamicBlock>
           ))}
 
-          <div className="animate-rise relative z-50" style={{ animationDelay: '300ms' }}>
+          <div
+            className="animate-rise relative "
+            style={{ animationDelay: "300ms" }}
+          >
             <AddBlockPopover onAdd={addBlock} />
             {blocks.length === 0 && (
               <p className="mt-3 text-center text-[13px] text-stone-400 dark:text-stone-500">
-                עדיין אין בלוקים — הוסיפו אינטגרציה, נתוני בדיקה, טבלה או טקסט חופשי לפי הצורך
+                עדיין אין בלוקים — הוסיפו אינטגרציה, נתוני בדיקה, טבלה או טקסט
+                חופשי לפי הצורך
               </p>
             )}
           </div>
@@ -379,12 +471,12 @@ export default function App() {
         <div className="pointer-events-none fixed inset-x-0 bottom-24 z-50 flex justify-center px-4">
           <div
             className={`animate-toast pointer-events-auto flex items-center gap-2.5 rounded-xl border px-4 py-3 text-[14px] font-semibold shadow-lg ${
-              toast.tone === 'success'
-                ? 'border-emerald-200 bg-emerald-50 text-emerald-700 shadow-emerald-900/10 dark:border-emerald-900/60 dark:bg-emerald-950/90 dark:text-emerald-300'
-                : 'border-red-200 bg-red-50 text-red-700 shadow-red-900/10 dark:border-red-900/60 dark:bg-red-950/90 dark:text-red-300'
+              toast.tone === "success"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-700 shadow-emerald-900/10 dark:border-emerald-900/60 dark:bg-emerald-950/90 dark:text-emerald-300"
+                : "border-red-200 bg-red-50 text-red-700 shadow-red-900/10 dark:border-red-900/60 dark:bg-red-950/90 dark:text-red-300"
             }`}
           >
-            {toast.tone === 'success' ? (
+            {toast.tone === "success" ? (
               <CheckCircle2 className="size-4 shrink-0" />
             ) : (
               <AlertTriangle className="size-4 shrink-0" />
@@ -400,11 +492,14 @@ export default function App() {
         <MarkdownToWordModal
           onClose={() => setWordModalOpen(false)}
           onSuccess={() => {
-            setWordModalOpen(false)
-            setToast({ message: 'הועתק בהצלחה! הדביקו ישירות ב-Word או ב-Google Docs', tone: 'success' })
+            setWordModalOpen(false);
+            setToast({
+              message: "הועתק בהצלחה! הדביקו ישירות ב-Word או ב-Google Docs",
+              tone: "success",
+            });
           }}
         />
       )}
     </div>
-  )
+  );
 }
