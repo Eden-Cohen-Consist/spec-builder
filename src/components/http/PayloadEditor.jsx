@@ -1,11 +1,9 @@
 import { Field } from "../ui.jsx";
 
-export default function PayloadEditor({ label, value, onChange, invalid }) {
+export default function PayloadEditor({ label, value, onChange, error }) {
+  const invalid = Boolean(error);
   return (
-    <Field
-      label={<span dir="ltr">{label}</span>}
-      hint={invalid ? "שדה חובה" : undefined}
-    >
+    <Field label={<span dir="ltr">{label}</span>} required error={error}>
       <textarea
         dir="ltr"
         spellCheck={false}

@@ -8,7 +8,7 @@ import HeadersEditor from "./http/HeadersEditor.jsx";
 import MappingTable from "./http/MappingTable.jsx";
 import SecurityFields from "./http/SecurityFields.jsx";
 
-export default function HttpBlock({ block, invalid, onUpdate }) {
+export default function HttpBlock({ block, errors, onUpdate }) {
   const thirdParty = isThirdParty(block.destination);
 
   const applyCurl = (parsed) => {
@@ -29,9 +29,15 @@ export default function HttpBlock({ block, invalid, onUpdate }) {
     <div>
       <CurlImport onImport={applyCurl} />
 
-      <Field label="כותרת הבלוק" hint="תופיע בבחירת הבלוק מתוך שלב קריאת API">
+      <Field
+        label="כותרת הבלוק"
+        hint="תופיע בבחירת הבלוק מתוך שלב קריאת API"
+        required
+        error={errors.get("title")}
+      >
         <Input
           value={block.title ?? ""}
+          invalid={errors.has("title")}
           onChange={(e) => onUpdate({ title: e.target.value })}
           placeholder="למשל: פתיחת לקוח ב-Priority"
         />
@@ -51,10 +57,16 @@ export default function HttpBlock({ block, invalid, onUpdate }) {
             ))}
           </Select>
         </Field>
-        <Field label={<span dir="ltr">Endpoint</span>} hint="כתובת ה-API המלאה">
+        <Field
+          label={<span dir="ltr">Endpoint</span>}
+          hint="כתובת ה-API המלאה"
+          required
+          error={errors.get("endpoint")}
+        >
           <Input
             dir="ltr"
             value={block.endpoint}
+            invalid={errors.has("endpoint")}
             onChange={(e) => onUpdate({ endpoint: e.target.value })}
             placeholder="https://api.example.com/v1/tickets"
             className="text-left font-mono !text-[13.5px]"
@@ -62,10 +74,11 @@ export default function HttpBlock({ block, invalid, onUpdate }) {
         </Field>
       </div>
       <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-3">
-        <Field label="מערכת מקור">
+        <Field label="מערכת מקור" required error={errors.get("source")}>
           <Input
             dir="auto"
             value={block.source}
+            invalid={errors.has("source")}
             onChange={(e) => onUpdate({ source: e.target.value })}
             placeholder="Glassix"
           />
@@ -75,6 +88,8 @@ export default function HttpBlock({ block, invalid, onUpdate }) {
           className="mb-2.5 size-5 text-stone-300 dark:text-stone-600"
         />
         <Field
+          required
+          error={errors.get("destination")}
           label={
             <span className="flex items-center gap-2">
               מערכת יעד
@@ -90,6 +105,7 @@ export default function HttpBlock({ block, invalid, onUpdate }) {
           <Input
             dir="auto"
             value={block.destination}
+            invalid={errors.has("destination")}
             onChange={(e) => onUpdate({ destination: e.target.value })}
             placeholder="Salesforce / Priority / Consist..."
           />
@@ -111,13 +127,13 @@ export default function HttpBlock({ block, invalid, onUpdate }) {
             label="Request Payload"
             value={block.requestPayload}
             onChange={(requestPayload) => onUpdate({ requestPayload })}
-            invalid={invalid && !block.requestPayload.trim()}
+            error={errors.get("requestPayload")}
           />
           <PayloadEditor
             label="Response"
             value={block.responsePayload}
             onChange={(responsePayload) => onUpdate({ responsePayload })}
-            invalid={invalid && !block.responsePayload.trim()}
+            error={errors.get("responsePayload")}
           />
         </div>
       )}
@@ -129,7 +145,7 @@ export default function HttpBlock({ block, invalid, onUpdate }) {
         onChange={(mapping) => onUpdate({ mapping })}
       />
 
-      <SecurityFields block={block} onUpdate={onUpdate} />
+      <SecurityFields block={block} errors={errors} onUpdate={onUpdate} />
     </div>
   );
 }

@@ -291,14 +291,13 @@ export default function App() {
   };
 
   const renderBlockBody = (block) => {
+    const errors = fieldErrors(shown.blocks.get(block.id) ?? []);
     switch (block.type) {
       case "http":
         return (
           <HttpBlock
             block={block}
-            invalid={(shown.blocks.get(block.id) ?? []).some(
-              (i) => i.severity === "error",
-            )}
+            errors={errors}
             onUpdate={(patch) => updateBlock(block.id, patch)}
           />
         );

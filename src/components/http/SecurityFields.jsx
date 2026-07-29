@@ -1,7 +1,8 @@
 import { ShieldCheck } from "lucide-react";
-import { Field, Textarea, Checkbox } from "../ui.jsx";
+import { Field, Textarea, Select, Checkbox } from "../ui.jsx";
+import { AUTH_TYPES } from "../../constants.js";
 
-export default function SecurityFields({ block, onUpdate }) {
+export default function SecurityFields({ block, errors, onUpdate }) {
   return (
     <div className="mt-6 border-t border-stone-100 pt-5 dark:border-stone-800">
       <h4 className="mb-3 flex items-center gap-1.5 text-[13.5px] font-bold text-stone-700 dark:text-stone-300">
@@ -9,6 +10,19 @@ export default function SecurityFields({ block, onUpdate }) {
         אבטחה וטיפול בשגיאות
       </h4>
       <div className="space-y-4">
+        <Field label="סוג אימות" hint="איך הקריאה מזוהה מול מערכת היעד">
+          <Select
+            value={block.authType}
+            onChange={(e) => onUpdate({ authType: e.target.value })}
+            wrapperClassName="sm:w-1/2"
+          >
+            {AUTH_TYPES.map((type) => (
+              <option key={type} value={type}>
+                {type}
+              </option>
+            ))}
+          </Select>
+        </Field>
         <div className="grid gap-4 sm:grid-cols-1">
           <div className="rounded-xl border border-stone-200 p-3.5 dark:border-stone-800">
             <Checkbox
@@ -22,12 +36,15 @@ export default function SecurityFields({ block, onUpdate }) {
               <Field
                 label="כתובות IP להחרגה"
                 hint="כתובת אחת בכל שורה"
+                required
+                error={errors.get("whitelistedIps")}
                 className="animate-pop mt-3"
               >
                 <Textarea
                   dir="ltr"
                   rows={3}
                   value={block.whitelistedIps}
+                  invalid={errors.has("whitelistedIps")}
                   onChange={(e) => onUpdate({ whitelistedIps: e.target.value })}
                   placeholder={"203.0.113.10\n198.51.100.0/24"}
                   className="text-left font-mono !text-[12.5px]"
@@ -47,11 +64,14 @@ export default function SecurityFields({ block, onUpdate }) {
               <Field
                 label="פרטי התעודה"
                 hint="סוג, פורמט והנחיות מסירה"
+                required
+                error={errors.get("certificateDetails")}
                 className="animate-pop mt-3"
               >
                 <Textarea
                   rows={3}
                   value={block.certificateDetails}
+                  invalid={errors.has("certificateDetails")}
                   onChange={(e) =>
                     onUpdate({ certificateDetails: e.target.value })
                   }
