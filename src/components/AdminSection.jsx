@@ -6,7 +6,7 @@ import { makeContactRow, makeDepartmentRow, hasContactContent } from "../lib.js"
 const invalidCell =
   "rounded-lg ring-2 ring-inset ring-red-400/70 dark:ring-red-500/50";
 
-export default function AdminSection({ value, onChange, invalid, delay }) {
+export default function AdminSection({ value, onChange, issues = [], submitted = false, invalid, delay }) {
   const set = (patch) => onChange({ ...value, ...patch });
   const setContact = (id, patch) =>
     set({
@@ -39,6 +39,8 @@ export default function AdminSection({ value, onChange, invalid, delay }) {
       number="1"
       title="הקשר אדמיניסטרטיבי"
       subtitle="מי הלקוח ומי מוביל את הפרויקט"
+      issues={issues}
+      submitted={submitted}
       delay={delay}
     >
       <div className="grid gap-4 sm:grid-cols-2">

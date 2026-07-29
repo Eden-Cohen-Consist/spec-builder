@@ -413,12 +413,14 @@ export default function App() {
             value={admin}
             onChange={setAdmin}
             issues={shown.admin}
+            submitted={submitted}
             delay={60}
           />
           <BusinessSection
             value={business}
             onChange={setBusiness}
             issues={shown.business}
+            submitted={submitted}
             delay={120}
           />
           <WorkflowSection
@@ -451,6 +453,7 @@ export default function App() {
               key={block.id}
               block={block}
               issues={shown.blocks.get(block.id) ?? []}
+              submitted={submitted}
               onDelete={() => deleteBlock(block.id)}
             >
               {renderBlockBody(block)}

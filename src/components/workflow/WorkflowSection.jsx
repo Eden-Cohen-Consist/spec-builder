@@ -7,7 +7,7 @@ import WorkflowDeleteDialog from './WorkflowDeleteDialog.jsx'
 import WorkflowValidationSummary from './WorkflowValidationSummary.jsx'
 import { WorkflowsContext } from '../../workflow/useWorkflows.js'
 
-export default function WorkflowSection({ api, blocks, dark, delay }) {
+export default function WorkflowSection({ api, blocks, dark, submitted, delay }) {
   const [pendingDelete, setPendingDelete] = useState(null)
   const [fullscreen, setFullscreen] = useState(false)
 
@@ -37,6 +37,8 @@ export default function WorkflowSection({ api, blocks, dark, delay }) {
         number="3"
         title="תהליכים עסקיים"
         subtitle="הגדרת התהליכים, הקשרים ביניהם והלוגיקה הפנימית של כל תהליך."
+        issues={api.issues}
+        submitted={submitted}
         delay={delay}
       >
         <div className="space-y-5">

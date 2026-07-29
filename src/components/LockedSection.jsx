@@ -1,10 +1,52 @@
-import { Lock } from "lucide-react";
+import { Lock, CircleAlert, Check } from "lucide-react";
+import { countIssues } from "../validation/issue.js";
+
+const badgeShell =
+  "mt-1 inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[11.5px] font-semibold";
+
+/**
+ * Before the first generate press the badge states that the section is mandatory; after it,
+ * the same slot carries the section's status, so the header never grows a second badge.
+ */
+function SectionBadge({ issues, submitted }) {
+  if (!submitted)
+    return (
+      <span
+        className={`${badgeShell} border-amber-200/70 bg-amber-50 text-amber-700 dark:border-amber-500/25 dark:bg-amber-950/40 dark:text-amber-400`}
+      >
+        חובה
+        <Lock className="size-3" />
+      </span>
+    );
+
+  const { errors } = countIssues(issues);
+  if (errors > 0)
+    return (
+      <span
+        className={`${badgeShell} animate-pop border-red-200 bg-red-50 text-red-600 dark:border-red-900/70 dark:bg-red-950/40 dark:text-red-400`}
+      >
+        {errors === 1 ? "חסר שדה אחד" : `${errors} חסרים`}
+        <CircleAlert className="size-3" />
+      </span>
+    );
+
+  return (
+    <span
+      className={`${badgeShell} animate-pop border-teal-600/25 bg-teal-50 text-teal-700 dark:border-teal-500/25 dark:bg-teal-500/10 dark:text-teal-400`}
+    >
+      מלא
+      <Check className="size-3" strokeWidth={3} />
+    </span>
+  );
+}
 
 export default function LockedSection({
   id,
   number,
   title,
   subtitle,
+  issues = [],
+  submitted = false,
   delay = 0,
   children,
 }) {
@@ -30,10 +72,7 @@ export default function LockedSection({
             )}
           </div>
         </div>
-        <span className="mt-1 inline-flex shrink-0 items-center gap-1 rounded-full border border-amber-200/70 bg-amber-50 px-2.5 py-1 text-[11.5px] font-semibold text-amber-700 dark:border-amber-500/25 dark:bg-amber-950/40 dark:text-amber-400">
-          חובה
-          <Lock className="size-3" />
-        </span>
+        <SectionBadge issues={issues} submitted={submitted} />
       </header>
       <div className="px-6 py-5">{children}</div>
     </section>

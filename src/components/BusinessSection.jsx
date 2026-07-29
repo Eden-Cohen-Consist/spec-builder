@@ -3,7 +3,7 @@ import LockedSection from "./LockedSection.jsx";
 import { Field, Input, Textarea, GhostButton, DeleteButton } from "./ui.jsx";
 import { makeTriggerRow } from "../lib.js";
 
-export default function BusinessSection({ value, onChange, delay }) {
+export default function BusinessSection({ value, onChange, issues = [], submitted = false, delay }) {
   const set = (patch) => onChange({ ...value, ...patch });
   const setTrigger = (id, text) =>
     set({
@@ -20,6 +20,8 @@ export default function BusinessSection({ value, onChange, delay }) {
       number="2"
       title="צורך עסקי וטריגר"
       subtitle="למה בונים את זה, ומה מפעיל את התהליך"
+      issues={issues}
+      submitted={submitted}
       delay={delay}
     >
       <div className="space-y-4">
