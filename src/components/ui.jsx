@@ -1,32 +1,58 @@
-import { Check, ChevronDown } from 'lucide-react'
+import { Check, ChevronDown, CircleAlert } from 'lucide-react'
 
+// Layout and typography only — the border/ring colours live in the two variants below,
+// because appending a red border after a stone one does not reliably override it in Tailwind
 const inputBase =
-  'w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-[15px] text-ink shadow-[0_1px_2px_rgba(28,25,23,0.03)] transition-all duration-150 placeholder:text-stone-400 hover:border-stone-300 focus:border-teal-600 focus:outline-none focus:ring-[3px] focus:ring-teal-600/10 dark:border-stone-700 dark:bg-stone-800/60 dark:shadow-none dark:placeholder:text-stone-500 dark:hover:border-stone-600 dark:focus:border-teal-500 dark:focus:ring-teal-500/15'
+  'w-full rounded-lg border bg-white px-3 py-2 text-[15px] text-ink shadow-[0_1px_2px_rgba(28,25,23,0.03)] transition-all duration-150 placeholder:text-stone-400 focus:outline-none dark:bg-stone-800/60 dark:shadow-none dark:placeholder:text-stone-500'
 
-export function Field({ label, hint, className = '', children }) {
+const inputIdle =
+  'border-stone-200 hover:border-stone-300 focus:border-teal-600 focus:ring-[3px] focus:ring-teal-600/10 dark:border-stone-700 dark:hover:border-stone-600 dark:focus:border-teal-500 dark:focus:ring-teal-500/15'
+
+const inputInvalid =
+  'border-red-300 ring-[3px] ring-red-500/10 hover:border-red-400 focus:border-red-500 focus:ring-red-500/15 dark:border-red-900 dark:hover:border-red-800 dark:focus:border-red-700'
+
+const inputClasses = (invalid, className) =>
+  `${inputBase} ${invalid ? inputInvalid : inputIdle} ${className}`
+
+/** Ring for the bare <input className="cell-input"> elements used inside tables. */
+export const invalidCell =
+  'rounded-lg ring-2 ring-inset ring-red-400/70 dark:ring-red-500/50'
+
+export function Field({ label, hint, required = false, error, className = '', children }) {
   return (
     <label className={`block ${className}`}>
       <span className="mb-1.5 flex items-baseline gap-2 text-[13px] font-semibold text-stone-600 dark:text-stone-300">
-        {label}
+        <span>
+          {label}
+          {required && <span className="text-red-500"> *</span>}
+        </span>
         {hint && <span className="font-normal text-stone-400 dark:text-stone-500">{hint}</span>}
       </span>
       {children}
+      {error && (
+        <span className="mt-1.5 flex items-center gap-1.5 text-[12px] font-semibold text-red-600 dark:text-red-400">
+          <CircleAlert className="size-3.5 shrink-0" />
+          {error}
+        </span>
+      )}
     </label>
   )
 }
 
-export function Input({ className = '', ...props }) {
-  return <input type="text" {...props} className={`${inputBase} ${className}`} />
+export function Input({ className = '', invalid = false, ...props }) {
+  return <input type="text" {...props} className={inputClasses(invalid, className)} />
 }
 
-export function Textarea({ className = '', rows = 3, ...props }) {
-  return <textarea rows={rows} {...props} className={`${inputBase} resize-y ${className}`} />
+export function Textarea({ className = '', rows = 3, invalid = false, ...props }) {
+  return (
+    <textarea rows={rows} {...props} className={`${inputClasses(invalid, className)} resize-y`} />
+  )
 }
 
-export function Select({ className = '', wrapperClassName = '', children, ...props }) {
+export function Select({ className = '', wrapperClassName = '', invalid = false, children, ...props }) {
   return (
     <span className={`relative block ${wrapperClassName}`}>
-      <select {...props} className={`${inputBase} cursor-pointer appearance-none pe-9 ${className}`}>
+      <select {...props} className={`${inputClasses(invalid, className)} cursor-pointer appearance-none pe-9`}>
         {children}
       </select>
       <ChevronDown className="pointer-events-none absolute end-3 top-1/2 size-4 -translate-y-1/2 text-stone-400 dark:text-stone-500" />

@@ -1,12 +1,12 @@
-import { Plus, Trash2 } from "lucide-react";
+import { useMemo } from "react";
+import { Plus, Trash2, CircleAlert } from "lucide-react";
 import LockedSection from "./LockedSection.jsx";
-import { Field, Input, Checkbox, GhostButton, DeleteButton } from "./ui.jsx";
-import { makeContactRow, makeDepartmentRow, hasContactContent } from "../lib.js";
+import { Field, Input, Checkbox, GhostButton, DeleteButton, invalidCell } from "./ui.jsx";
+import { makeContactRow, makeDepartmentRow } from "../lib.js";
+import { fieldErrors } from "../validation/index.js";
 
-const invalidCell =
-  "rounded-lg ring-2 ring-inset ring-red-400/70 dark:ring-red-500/50";
-
-export default function AdminSection({ value, onChange, issues = [], submitted = false, invalid, delay }) {
+export default function AdminSection({ value, onChange, issues = [], submitted = false, delay }) {
+  const errors = useMemo(() => fieldErrors(issues), [issues]);
   const set = (patch) => onChange({ ...value, ...patch });
   const setContact = (id, patch) =>
     set({
@@ -44,16 +44,18 @@ export default function AdminSection({ value, onChange, issues = [], submitted =
       delay={delay}
     >
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="שם הלקוח">
+        <Field label="שם הלקוח" required error={errors.get("clientName")}>
           <Input
             value={value.clientName}
+            invalid={errors.has("clientName")}
             onChange={(e) => set({ clientName: e.target.value })}
             placeholder="למשל: סופר פארם"
           />
         </Field>
-        <Field label="שם מנהל/ת הפרויקט">
+        <Field label="שם מנהל/ת הפרויקט" required error={errors.get("pmName")}>
           <Input
             value={value.pmName}
+            invalid={errors.has("pmName")}
             onChange={(e) => set({ pmName: e.target.value })}
             placeholder="מי מוביל את האפיון?"
           />
@@ -62,7 +64,10 @@ export default function AdminSection({ value, onChange, issues = [], submitted =
 
       <div className="mt-4">
         <div className="mb-1.5 flex items-baseline gap-2 text-[13px] font-semibold text-stone-600 dark:text-stone-300">
-          אנשי קשר
+          <span>
+            אנשי קשר
+            <span className="text-red-500"> *</span>
+          </span>
           <span className="font-normal text-stone-400 dark:text-stone-500">
             שם — חובה · אימייל או טלפון — לפחות אחד
           </span>
@@ -86,13 +91,8 @@ export default function AdminSection({ value, onChange, issues = [], submitted =
             </thead>
             <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
               {value.contacts.map((contact) => {
-                const dirty = hasContactContent(contact);
-                const nameMissing = invalid && dirty && !contact.name.trim();
-                const reachMissing =
-                  invalid &&
-                  dirty &&
-                  !contact.email.trim() &&
-                  !contact.phone.trim();
+                const nameMissing = errors.has(`contactName#${contact.id}`);
+                const reachMissing = errors.has(`contactReach#${contact.id}`);
                 return (
                   <tr
                     key={contact.id}
@@ -158,6 +158,12 @@ export default function AdminSection({ value, onChange, issues = [], submitted =
             </tbody>
           </table>
         </div>
+        {errors.get("contacts") && (
+          <p className="mt-1.5 flex items-center gap-1.5 text-[12px] font-semibold text-red-600 dark:text-red-400">
+            <CircleAlert className="size-3.5 shrink-0" />
+            {errors.get("contacts")}
+          </p>
+        )}
         <GhostButton icon={Plus} onClick={addContact} className="mt-2.5">
           הוסף איש קשר
         </GhostButton>
@@ -182,7 +188,7 @@ export default function AdminSection({ value, onChange, issues = [], submitted =
                 <thead>
                   <tr className="border-b border-stone-200 bg-stone-50 text-[12px] font-semibold text-stone-500 dark:border-stone-800 dark:bg-stone-800/50 dark:text-stone-400">
                     <th className="w-[30%] px-3 py-2.5 text-start font-semibold">
-                      שם המחלקה
+                      שם המחלקה <span className="text-red-500">*</span>
                     </th>
                     <th className="w-[22%] px-3 py-2.5 text-start font-semibold">
                       מזהה קצר
@@ -208,7 +214,9 @@ export default function AdminSection({ value, onChange, issues = [], submitted =
                             })
                           }
                           placeholder="שירות לקוחות"
-                          className="cell-input font-medium"
+                          className={`cell-input font-medium ${
+                            errors.has(`departmentName#${department.id}`) ? invalidCell : ""
+                          }`}
                         />
                       </td>
                       <td>
