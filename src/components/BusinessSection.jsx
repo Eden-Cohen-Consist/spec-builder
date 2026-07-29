@@ -16,6 +16,7 @@ export default function BusinessSection({ value, onChange, delay }) {
 
   return (
     <LockedSection
+      id="section-business"
       number="2"
       title="צורך עסקי וטריגר"
       subtitle="למה בונים את זה, ומה מפעיל את התהליך"

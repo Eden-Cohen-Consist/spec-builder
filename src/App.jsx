@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Sparkles,
   AlertTriangle,
@@ -21,17 +21,18 @@ import TableBlock from "./components/TableBlock.jsx";
 import AddBlockPopover from "./components/AddBlockPopover.jsx";
 import ExportModal from "./components/ExportModal.jsx";
 import MarkdownToWordModal from "./components/MarkdownToWordModal.jsx";
+import ValidationModal from "./components/ValidationModal.jsx";
 import {
   makeBlock,
   makeContactRow,
   makeDepartmentRow,
   makeTriggerRow,
-  hasContactContent,
-  isThirdParty,
   compileSpec,
 } from "./lib.js";
 import { useWorkflows } from "./workflow/useWorkflows.js";
 import { migrateWorkflows } from "./workflow/migrate.js";
+import { validateSpec, fieldErrors } from "./validation/index.js";
+import { countIssues } from "./validation/issue.js";
 
 const DRAFT_KEY = "glassix-spec-builder:draft:v1";
 const THEME_KEY = "glassix-spec-builder:theme";
@@ -160,8 +161,10 @@ export default function App() {
   const [blocks, setBlocks] = useState(() =>
     migrateBlocks(draft?.blocks ?? []),
   );
-  const [invalidIds, setInvalidIds] = useState(() => new Set());
-  const [adminInvalid, setAdminInvalid] = useState(false);
+  // Flipped by the first generate press. Every red/amber/green affordance is gated on it,
+  // so the form stays silent while the PM is still filling it in.
+  const [submitted, setSubmitted] = useState(false);
+  const [checkOpen, setCheckOpen] = useState(false);
   const [toast, setToast] = useState(null);
   const [spec, setSpec] = useState(null);
   const [wordModalOpen, setWordModalOpen] = useState(false);
@@ -169,6 +172,35 @@ export default function App() {
   const [dark, setDark] = useState(() =>
     document.documentElement.classList.contains("dark"),
   );
+
+  const formIssues = useMemo(
+    () => validateSpec({ admin, business, blocks }),
+    [admin, business, blocks],
+  );
+  const allIssues = useMemo(
+    () => [...formIssues, ...wf.issues],
+    [formIssues, wf.issues],
+  );
+  const errorCount = useMemo(
+    () => countIssues(allIssues).errors,
+    [allIssues],
+  );
+
+  // Empty until `submitted`, which is what keeps the UI silent — every consumer below
+  // reads these and therefore needs no flag of its own
+  const shown = useMemo(() => {
+    const result = { admin: [], business: [], blocks: new Map() };
+    if (!submitted) return result;
+    for (const item of formIssues) {
+      if (item.scope === "admin") result.admin.push(item);
+      else if (item.scope === "business") result.business.push(item);
+      else if (item.blockId) {
+        if (!result.blocks.has(item.blockId)) result.blocks.set(item.blockId, []);
+        result.blocks.get(item.blockId).push(item);
+      }
+    }
+    return result;
+  }, [formIssues, submitted]);
 
   // Debounced autosave to localStorage
   useEffect(() => {
@@ -202,25 +234,10 @@ export default function App() {
     localStorage.setItem(THEME_KEY, next ? "dark" : "light");
   };
 
-  const changeAdmin = (next) => {
-    setAdmin(next);
-    setAdminInvalid(false);
-  };
-
   const addBlock = (type) => setBlocks((prev) => [...prev, makeBlock(type)]);
 
-  const updateBlock = (id, patch) => {
-    setBlocks((prev) =>
-      prev.map((b) => (b.id === id ? { ...b, ...patch } : b)),
-    );
-    // Editing a flagged block clears its validation highlight
-    setInvalidIds((prev) => {
-      if (!prev.has(id)) return prev;
-      const next = new Set(prev);
-      next.delete(id);
-      return next;
-    });
-  };
+  const updateBlock = (id, patch) =>
+    setBlocks((prev) => prev.map((b) => (b.id === id ? { ...b, ...patch } : b)));
 
   const deleteBlock = (id) =>
     setBlocks((prev) => prev.filter((b) => b.id !== id));
@@ -232,61 +249,45 @@ export default function App() {
     setBusiness(defaultBusiness());
     wf.reset();
     setBlocks([]);
-    setInvalidIds(new Set());
-    setAdminInvalid(false);
+    setSubmitted(false);
+    setCheckOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const generate = () => {
-    const badContacts = admin.contacts.some(
-      (c) =>
-        hasContactContent(c) &&
-        (!c.name.trim() || (!c.email.trim() && !c.phone.trim())),
-    );
-    if (badContacts) {
-      setAdminInvalid(true);
-      setToast({
-        message: "נא להשלים אנשי קשר — שם חובה, וכן אימייל או טלפון",
-        tone: "error",
-      });
-      document
-        .getElementById("section-admin")
-        ?.scrollIntoView({ behavior: "smooth", block: "center" });
-      return;
-    }
-    const offenders = blocks.filter(
-      (b) =>
-        b.type === "http" &&
-        isThirdParty(b.destination) &&
-        (!b.requestPayload.trim() || !b.responsePayload.trim()),
-    );
-    if (offenders.length > 0) {
-      setInvalidIds(new Set(offenders.map((b) => b.id)));
-      setToast({
-        message:
-          "נא למלא Request/Response JSON Payloads עבור אינטגרציות צד שלישי",
-        tone: "error",
-      });
-      document
-        .getElementById(`block-${offenders[0].id}`)
-        ?.scrollIntoView({ behavior: "smooth", block: "center" });
-      return;
-    }
-    const workflowErrors = wf.issues.filter((i) => i.severity === "error");
-    if (workflowErrors.length > 0) {
-      const first = workflowErrors[0];
-      wf.setActiveWorkflowId(first.workflowId);
-      if (first.nodeId) wf.selectNode(first.nodeId);
-      setToast({
-        message: `יש ${workflowErrors.length} בעיות בתהליכים — יש לתקן אותן לפני יצירת האפיון`,
-        tone: "error",
-      });
-      document
-        .getElementById("section-workflows")
-        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    setSubmitted(true);
+    if (allIssues.length > 0) {
+      setCheckOpen(true);
       return;
     }
     setSpec(compileSpec({ admin, business, workflows: wf.workflows, blocks }));
+  };
+
+  const generateAnyway = () => {
+    setCheckOpen(false);
+    setSpec(compileSpec({ admin, business, workflows: wf.workflows, blocks }));
+  };
+
+  const goToIssue = (item) => {
+    setCheckOpen(false);
+    if (item.scope === "workflow") {
+      wf.setActiveWorkflowId(item.workflowId);
+      if (item.nodeId) wf.selectNode(item.nodeId);
+    }
+    const anchor =
+      item.scope === "admin"
+        ? "section-admin"
+        : item.scope === "business"
+          ? "section-business"
+          : item.scope === "workflow"
+            ? "section-workflows"
+            : `block-${item.blockId}`;
+    // Wait a frame so the section has re-rendered (and the workflow tab switched) before scrolling
+    requestAnimationFrame(() =>
+      document
+        .getElementById(anchor)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" }),
+    );
   };
 
   const renderBlockBody = (block) => {
@@ -295,7 +296,9 @@ export default function App() {
         return (
           <HttpBlock
             block={block}
-            invalid={invalidIds.has(block.id)}
+            invalid={(shown.blocks.get(block.id) ?? []).some(
+              (i) => i.severity === "error",
+            )}
             onUpdate={(patch) => updateBlock(block.id, patch)}
           />
         );
@@ -408,16 +411,23 @@ export default function App() {
         <div className="space-y-5">
           <AdminSection
             value={admin}
-            onChange={changeAdmin}
-            invalid={adminInvalid}
+            onChange={setAdmin}
+            issues={shown.admin}
             delay={60}
           />
           <BusinessSection
             value={business}
             onChange={setBusiness}
+            issues={shown.business}
             delay={120}
           />
-          <WorkflowSection api={wf} blocks={blocks} dark={dark} delay={180} />
+          <WorkflowSection
+            api={wf}
+            blocks={blocks}
+            dark={dark}
+            submitted={submitted}
+            delay={180}
+          />
         </div>
 
         <div
@@ -440,7 +450,7 @@ export default function App() {
             <DynamicBlock
               key={block.id}
               block={block}
-              invalid={invalidIds.has(block.id)}
+              issues={shown.blocks.get(block.id) ?? []}
               onDelete={() => deleteBlock(block.id)}
             >
               {renderBlockBody(block)}
@@ -467,7 +477,11 @@ export default function App() {
           <button
             type="button"
             onClick={generate}
-            className="group pointer-events-auto inline-flex items-center gap-2.5 rounded-2xl bg-teal-700 px-8 py-3.5 text-[16px] font-bold text-white shadow-lg shadow-teal-700/25 transition-all duration-200 hover:-translate-y-0.5 hover:bg-teal-800 hover:shadow-xl hover:shadow-teal-700/30 active:translate-y-0 active:scale-[0.99]"
+            className={`group pointer-events-auto inline-flex items-center gap-2.5 rounded-2xl px-8 py-3.5 text-[16px] font-bold text-white transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] ${
+              submitted && errorCount > 0
+                ? "bg-teal-700/45 shadow-md shadow-teal-700/10 hover:bg-teal-700/60"
+                : "bg-teal-700 shadow-lg shadow-teal-700/25 hover:bg-teal-800 hover:shadow-xl hover:shadow-teal-700/30"
+            }`}
           >
             <Sparkles className="size-[18px] transition-transform duration-200 group-hover:rotate-12" />
             צור פרומפט לאפיון
@@ -495,6 +509,16 @@ export default function App() {
       )}
 
       {spec && <ExportModal spec={spec} onClose={() => setSpec(null)} />}
+
+      {checkOpen && (
+        <ValidationModal
+          issues={allIssues}
+          blocks={blocks}
+          onClose={() => setCheckOpen(false)}
+          onGenerateAnyway={generateAnyway}
+          onNavigate={goToIssue}
+        />
+      )}
 
       {wordModalOpen && (
         <MarkdownToWordModal
