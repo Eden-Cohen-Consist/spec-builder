@@ -114,6 +114,6 @@ export const validateAllWorkflows = (workflows) => {
   // unique as React keys
   const issues = workflows
     .flatMap((w) => validateWorkflow(w))
-    .map((item, index) => ({ ...item, id: `${item.id}#${index}` }))
+    .map((item, index) => ({ ...item, scope: 'workflow', id: `${item.id}#${index}` }))
   return { issues }
 }
