@@ -2,7 +2,7 @@ import { Plus, Trash2, X, CircleAlert } from 'lucide-react'
 import { Field, Input, Textarea, GhostButton, DeleteButton, invalidCell } from './ui.jsx'
 import { makeTableColumn, makeTableRow } from '../lib.js'
 
-export default function TableBlock({ block, errors, onUpdate }) {
+export default function TableBlock({ block, errors = new Map(), onUpdate }) {
   const setColumn = (id, label) =>
     onUpdate({ columns: block.columns.map((col) => (col.id === id ? { ...col, label } : col)) })
   const addColumn = () => onUpdate({ columns: [...block.columns, makeTableColumn()] })
@@ -50,33 +50,45 @@ export default function TableBlock({ block, errors, onUpdate }) {
         />
       </Field>
 
+      <div className="mb-1.5 flex items-baseline gap-2 text-[13px] font-semibold text-stone-600 dark:text-stone-300">
+        <span>
+          שמות העמודות
+          <span className="text-red-500"> *</span>
+        </span>
+        <span className="font-normal text-stone-400 dark:text-stone-500">תווית לכל עמודה</span>
+      </div>
       <div className="overflow-x-auto rounded-xl border border-stone-200 dark:border-stone-800">
         <table className="w-full min-w-[420px] text-[13.5px]">
           <thead>
             <tr className="border-b border-stone-200 bg-stone-50 dark:border-stone-800 dark:bg-stone-800/50">
-              {block.columns.map((col, i) => (
-                <th key={col.id} className="group/col p-0 text-start">
-                  <span className="flex items-center">
-                    <input
-                      value={col.label}
-                      onChange={(e) => setColumn(col.id, e.target.value)}
-                      placeholder={`עמודה ${i + 1}`}
-                      className={`cell-input !py-2.5 !text-[12.5px] font-bold ${
-                        errors.has(`columnLabel#${col.id}`) ? invalidCell : ''
-                      }`}
-                    />
-                    {block.columns.length > 1 && (
-                      <DeleteButton
-                        aria-label="מחיקת עמודה"
-                        onClick={() => removeColumn(col.id)}
-                        className="me-1 !p-1 opacity-0 focus-visible:opacity-100 group-hover/col:opacity-100"
-                      >
-                        <X className="size-3.5" />
-                      </DeleteButton>
-                    )}
-                  </span>
-                </th>
-              ))}
+              {block.columns.map((col, i) => {
+                const columnLabelInvalid = errors.has(`columnLabel#${col.id}`)
+                return (
+                  <th key={col.id} className="group/col p-0 text-start">
+                    <span className="flex items-center">
+                      <input
+                        value={col.label}
+                        onChange={(e) => setColumn(col.id, e.target.value)}
+                        placeholder={`עמודה ${i + 1}`}
+                        aria-invalid={columnLabelInvalid}
+                        title={errors.get(`columnLabel#${col.id}`)}
+                        className={`cell-input !py-2.5 !text-[12.5px] font-bold ${
+                          columnLabelInvalid ? invalidCell : ''
+                        }`}
+                      />
+                      {block.columns.length > 1 && (
+                        <DeleteButton
+                          aria-label="מחיקת עמודה"
+                          onClick={() => removeColumn(col.id)}
+                          className="me-1 !p-1 opacity-0 focus-visible:opacity-100 group-hover/col:opacity-100"
+                        >
+                          <X className="size-3.5" />
+                        </DeleteButton>
+                      )}
+                    </span>
+                  </th>
+                )
+              })}
               <th className="w-10 text-center">
                 <button
                   type="button"

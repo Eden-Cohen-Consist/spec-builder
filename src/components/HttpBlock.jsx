@@ -8,7 +8,7 @@ import HeadersEditor from "./http/HeadersEditor.jsx";
 import MappingTable from "./http/MappingTable.jsx";
 import SecurityFields from "./http/SecurityFields.jsx";
 
-export default function HttpBlock({ block, errors, onUpdate }) {
+export default function HttpBlock({ block, errors = new Map(), onUpdate }) {
   const thirdParty = isThirdParty(block.destination);
 
   const applyCurl = (parsed) => {

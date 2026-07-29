@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, CircleAlert, TriangleAlert, Check } from "lucide-react";
+import { ChevronDown, CircleAlert, TriangleAlert } from "lucide-react";
 import { useWorkflowsApi } from "../../workflow/useWorkflows.js";
 
 /**

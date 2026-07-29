@@ -7,7 +7,7 @@ import WorkflowDeleteDialog from './WorkflowDeleteDialog.jsx'
 import WorkflowValidationSummary from './WorkflowValidationSummary.jsx'
 import { WorkflowsContext } from '../../workflow/useWorkflows.js'
 
-export default function WorkflowSection({ api, blocks, dark, submitted, delay }) {
+export default function WorkflowSection({ api, blocks, dark, submitted = false, delay }) {
   const [pendingDelete, setPendingDelete] = useState(null)
   const [fullscreen, setFullscreen] = useState(false)
 

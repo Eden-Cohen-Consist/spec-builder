@@ -105,6 +105,8 @@ export default function AdminSection({ value, onChange, issues = [], submitted =
                           setContact(contact.id, { name: e.target.value })
                         }
                         placeholder="ישראל ישראלי"
+                        aria-invalid={nameMissing}
+                        title={errors.get(`contactName#${contact.id}`)}
                         className={`cell-input font-medium ${nameMissing ? invalidCell : ""}`}
                       />
                     </td>
@@ -117,6 +119,8 @@ export default function AdminSection({ value, onChange, issues = [], submitted =
                           setContact(contact.id, { email: e.target.value })
                         }
                         placeholder="israel@client.co.il"
+                        aria-invalid={reachMissing}
+                        title={errors.get(`contactReach#${contact.id}`)}
                         className={`cell-input text-left font-mono !text-[12.5px] ${reachMissing ? invalidCell : ""}`}
                       />
                     </td>
@@ -128,6 +132,8 @@ export default function AdminSection({ value, onChange, issues = [], submitted =
                           setContact(contact.id, { phone: e.target.value })
                         }
                         placeholder="050-1234567"
+                        aria-invalid={reachMissing}
+                        title={errors.get(`contactReach#${contact.id}`)}
                         className={`cell-input text-left font-mono !text-[12.5px] ${reachMissing ? invalidCell : ""}`}
                       />
                     </td>
@@ -214,6 +220,8 @@ export default function AdminSection({ value, onChange, issues = [], submitted =
                             })
                           }
                           placeholder="שירות לקוחות"
+                          aria-invalid={errors.has(`departmentName#${department.id}`)}
+                          title={errors.get(`departmentName#${department.id}`)}
                           className={`cell-input font-medium ${
                             errors.has(`departmentName#${department.id}`) ? invalidCell : ""
                           }`}

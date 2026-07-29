@@ -120,7 +120,7 @@ Asterisks render always. **Every** red/amber/green affordance — status chips, 
 Two field shapes exist in this codebase and both need covering:
 
 - **Form fields** — wrapped in `Field` with an `Input`/`Textarea`/`Select` inside. These use the new props.
-- **Table cells** — raw `<input className="cell-input">` inside `<table>` markup (contacts and departments in `AdminSection`, `MappingTable`, `TableBlock` rows). These already have a local `invalidCell` ring constant in `AdminSection`; promote it to a shared export and apply it the same way. Their column headers carry the `*`, as the contacts "שם מלא" header already does.
+- **Table cells** — raw `<input className="cell-input">` inside `<table>` markup (contacts and departments in `AdminSection`, `MappingTable`, `TableBlock` rows). These already have a local `invalidCell` ring constant in `AdminSection`; promote it to a shared export and apply it the same way. Their column headers carry the `*`, as the contacts "שם מלא" header already does — except in `TableBlock`, where the column headers are themselves the editable inputs, so there is no static header text to mark; instead a labelled row ("שמות העמודות" `*`, with hint "תווית לכל עמודה") sits above the table, mirroring `AdminSection`'s "אנשי קשר" label block.
 
 ### Passing errors down
 

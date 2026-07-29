@@ -40,19 +40,35 @@ export function Field({ label, hint, required = false, error, className = '', ch
 }
 
 export function Input({ className = '', invalid = false, ...props }) {
-  return <input type="text" {...props} className={inputClasses(invalid, className)} />
+  return (
+    <input
+      type="text"
+      aria-invalid={invalid || undefined}
+      {...props}
+      className={inputClasses(invalid, className)}
+    />
+  )
 }
 
 export function Textarea({ className = '', rows = 3, invalid = false, ...props }) {
   return (
-    <textarea rows={rows} {...props} className={`${inputClasses(invalid, className)} resize-y`} />
+    <textarea
+      rows={rows}
+      aria-invalid={invalid || undefined}
+      {...props}
+      className={`${inputClasses(invalid, className)} resize-y`}
+    />
   )
 }
 
 export function Select({ className = '', wrapperClassName = '', invalid = false, children, ...props }) {
   return (
     <span className={`relative block ${wrapperClassName}`}>
-      <select {...props} className={`${inputClasses(invalid, className)} cursor-pointer appearance-none pe-9`}>
+      <select
+        aria-invalid={invalid || undefined}
+        {...props}
+        className={`${inputClasses(invalid, className)} cursor-pointer appearance-none pe-9`}
+      >
         {children}
       </select>
       <ChevronDown className="pointer-events-none absolute end-3 top-1/2 size-4 -translate-y-1/2 text-stone-400 dark:text-stone-500" />

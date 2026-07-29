@@ -1,6 +1,6 @@
 import { Field, Input, Textarea } from './ui.jsx'
 
-export default function FreeTextBlock({ block, errors, onUpdate }) {
+export default function FreeTextBlock({ block, errors = new Map(), onUpdate }) {
   return (
     <div className="space-y-4">
       <Field label="כותרת">

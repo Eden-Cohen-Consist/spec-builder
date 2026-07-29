@@ -2,7 +2,7 @@ import { Plus, Trash2, CircleAlert } from 'lucide-react'
 import { GhostButton, DeleteButton } from './ui.jsx'
 import { makeTestRow } from '../lib.js'
 
-export default function TestDataBlock({ block, errors, onUpdate }) {
+export default function TestDataBlock({ block, errors = new Map(), onUpdate }) {
   const setRow = (id, patch) =>
     onUpdate({ rows: block.rows.map((row) => (row.id === id ? { ...row, ...patch } : row)) })
   const removeRow = (id) => onUpdate({ rows: block.rows.filter((row) => row.id !== id) })
