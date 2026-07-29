@@ -305,6 +305,7 @@ export default function App() {
         return (
           <FreeTextBlock
             block={block}
+            errors={errors}
             onUpdate={(patch) => updateBlock(block.id, patch)}
           />
         );
@@ -312,6 +313,7 @@ export default function App() {
         return (
           <TestDataBlock
             block={block}
+            errors={errors}
             onUpdate={(patch) => updateBlock(block.id, patch)}
           />
         );
@@ -319,6 +321,7 @@ export default function App() {
         return (
           <TableBlock
             block={block}
+            errors={errors}
             onUpdate={(patch) => updateBlock(block.id, patch)}
           />
         );

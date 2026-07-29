@@ -1,8 +1,8 @@
-import { Plus, Trash2, X } from 'lucide-react'
-import { Field, Input, Textarea, GhostButton, DeleteButton } from './ui.jsx'
+import { Plus, Trash2, X, CircleAlert } from 'lucide-react'
+import { Field, Input, Textarea, GhostButton, DeleteButton, invalidCell } from './ui.jsx'
 import { makeTableColumn, makeTableRow } from '../lib.js'
 
-export default function TableBlock({ block, onUpdate }) {
+export default function TableBlock({ block, errors, onUpdate }) {
   const setColumn = (id, label) =>
     onUpdate({ columns: block.columns.map((col) => (col.id === id ? { ...col, label } : col)) })
   const addColumn = () => onUpdate({ columns: [...block.columns, makeTableColumn()] })
@@ -26,9 +26,16 @@ export default function TableBlock({ block, onUpdate }) {
 
   return (
     <div>
-      <Field label="שם הטבלה" hint="על מה הטבלה?" className="mb-4 sm:w-1/2">
+      <Field
+        label="שם הטבלה"
+        hint="על מה הטבלה?"
+        required
+        error={errors.get('name')}
+        className="mb-4 sm:w-1/2"
+      >
         <Input
           value={block.name}
+          invalid={errors.has('name')}
           onChange={(e) => onUpdate({ name: e.target.value })}
           placeholder="למשל: סטטוסים אפשריים"
         />
@@ -54,7 +61,9 @@ export default function TableBlock({ block, onUpdate }) {
                       value={col.label}
                       onChange={(e) => setColumn(col.id, e.target.value)}
                       placeholder={`עמודה ${i + 1}`}
-                      className="cell-input !py-2.5 !text-[12.5px] font-bold"
+                      className={`cell-input !py-2.5 !text-[12.5px] font-bold ${
+                        errors.has(`columnLabel#${col.id}`) ? invalidCell : ''
+                      }`}
                     />
                     {block.columns.length > 1 && (
                       <DeleteButton
@@ -111,6 +120,12 @@ export default function TableBlock({ block, onUpdate }) {
           </tbody>
         </table>
       </div>
+      {errors.get('rows') && (
+        <p className="mt-1.5 flex items-center gap-1.5 text-[12px] font-semibold text-red-600 dark:text-red-400">
+          <CircleAlert className="size-3.5 shrink-0" />
+          {errors.get('rows')}
+        </p>
+      )}
       <div className="mt-2.5 flex gap-2.5">
         <GhostButton icon={Plus} onClick={addRow}>
           הוסף שורה

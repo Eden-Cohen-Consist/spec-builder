@@ -1,8 +1,8 @@
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2, CircleAlert } from 'lucide-react'
 import { GhostButton, DeleteButton } from './ui.jsx'
 import { makeTestRow } from '../lib.js'
 
-export default function TestDataBlock({ block, onUpdate }) {
+export default function TestDataBlock({ block, errors, onUpdate }) {
   const setRow = (id, patch) =>
     onUpdate({ rows: block.rows.map((row) => (row.id === id ? { ...row, ...patch } : row)) })
   const removeRow = (id) => onUpdate({ rows: block.rows.filter((row) => row.id !== id) })
@@ -14,8 +14,12 @@ export default function TestDataBlock({ block, onUpdate }) {
         <table className="w-full min-w-[560px] text-[13.5px]">
           <thead>
             <tr className="border-b border-stone-200 bg-stone-50 text-[12px] font-semibold text-stone-500 dark:border-stone-800 dark:bg-stone-800/50 dark:text-stone-400">
-              <th className="w-[30%] px-3 py-2.5 text-start font-semibold">שדה</th>
-              <th className="w-[32%] px-3 py-2.5 text-start font-semibold">ערך לבדיקה</th>
+              <th className="w-[30%] px-3 py-2.5 text-start font-semibold">
+                שדה <span className="text-red-500">*</span>
+              </th>
+              <th className="w-[32%] px-3 py-2.5 text-start font-semibold">
+                ערך לבדיקה <span className="text-red-500">*</span>
+              </th>
               <th className="px-3 py-2.5 text-start font-semibold">הערות</th>
               <th className="w-10" />
             </tr>
@@ -62,6 +66,12 @@ export default function TestDataBlock({ block, onUpdate }) {
           </tbody>
         </table>
       </div>
+      {errors.get('rows') && (
+        <p className="mt-1.5 flex items-center gap-1.5 text-[12px] font-semibold text-red-600 dark:text-red-400">
+          <CircleAlert className="size-3.5 shrink-0" />
+          {errors.get('rows')}
+        </p>
+      )}
       <GhostButton icon={Plus} onClick={addRow} className="mt-2.5">
         הוסף שורה
       </GhostButton>
