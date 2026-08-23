@@ -1,183 +1,40 @@
 import { useState, useEffect, useMemo } from "react";
-import {
-  Sparkles,
-  AlertTriangle,
-  RotateCcw,
-  Check,
-  CheckCircle2,
-  CloudUpload,
-  Sun,
-  Moon,
-  FileText,
-} from "lucide-react";
+import { AlertTriangle, CheckCircle2, FileText } from "lucide-react";
 import AdminSection from "./components/AdminSection.jsx";
 import BusinessSection from "./components/BusinessSection.jsx";
 import WorkflowSection from "./components/workflow/WorkflowSection.jsx";
 import DynamicBlock from "./components/DynamicBlock.jsx";
 import { HttpBlockCard } from "./components/HttpBlock.jsx";
-import FreeTextBlock from "./components/FreeTextBlock.jsx";
-import TestDataBlock from "./components/TestDataBlock.jsx";
-import TableBlock from "./components/TableBlock.jsx";
 import AddBlockPopover from "./components/AddBlockPopover.jsx";
 import ExportModal from "./components/ExportModal.jsx";
 import MarkdownToWordModal from "./components/MarkdownToWordModal.jsx";
 import ValidationModal from "./components/ValidationModal.jsx";
 import WizardStepper from "./components/WizardStepper.jsx";
-import { GhostButton } from "./components/ui.jsx";
-import {
-  makeBlock,
-  makeContactRow,
-  makeDepartmentRow,
-  compileSpec,
-  sanitizeWizard,
-} from "./lib.js";
+import AppHeader from "./components/app/AppHeader.jsx";
+import AppFooter from "./components/app/AppFooter.jsx";
+import BlockBody from "./components/app/BlockBody.jsx";
+import { makeBlock, compileSpec } from "./lib.js";
 import { useWorkflows } from "./workflow/useWorkflows.js";
 import { migrateWorkflows } from "./workflow/migrate.js";
 import { validateSpec, fieldErrors } from "./validation/index.js";
 import { countIssues } from "./validation/issue.js";
-
-const DRAFT_KEY = "glassix-spec-builder:draft:v1";
-const THEME_KEY = "glassix-spec-builder:theme";
-
-const STEP_SCOPES = {
-  1: new Set(["admin", "business"]),
-  2: new Set(["workflow"]),
-  3: new Set(["block"]),
-};
-
-const stepFromScope = (scope) => {
-  if (scope === "admin" || scope === "business") return 1;
-  if (scope === "workflow") return 2;
-  return 3;
-};
-
-const issuesForStep = (issues, step) =>
-  issues.filter((item) => STEP_SCOPES[step].has(item.scope));
-
-const stepHasError = (issues, step) =>
-  issuesForStep(issues, step).some((item) => item.severity === "error");
-
-const defaultAdmin = () => ({
-  clientName: "",
-  pmName: "",
-  contacts: [makeContactRow()],
-  departmentCreated: false,
-  departments: [makeDepartmentRow()],
-});
-const defaultBusiness = () => ({ goal: "" });
-
-// Older drafts stored contacts as free text and http blocks without endpoint/method/headers
-const migrateAdmin = (saved) => {
-  const admin = { ...defaultAdmin(), ...saved };
-  if (!Array.isArray(admin.contacts) || admin.contacts.length === 0) {
-    const legacyLines =
-      typeof admin.contacts === "string"
-        ? admin.contacts
-            .split("\n")
-            .map((line) => line.trim())
-            .filter(Boolean)
-        : [];
-    admin.contacts = legacyLines.length
-      ? legacyLines.map((line) => ({ ...makeContactRow(), name: line }))
-      : [makeContactRow()];
-  }
-  return admin;
-};
-
-// Drop legacy trigger fields — workflow triggers own that concern now
-const migrateBusiness = (saved) => {
-  if (!saved) return defaultBusiness();
-  return { goal: saved.goal ?? "" };
-};
-
-const foldSecurityIntoHttp = (httpBlock, security) => {
-  // authType UI was removed — keep any legacy value as a note in fallback
-  const authNote =
-    security.authType && security.authType !== "None"
-      ? `Authentication: ${security.authType}`
-      : "";
-  const merged = [httpBlock.fallback, authNote, security.fallback]
-    .filter((t) => t?.trim())
-    .join("\n");
-  if (merged) httpBlock.fallback = merged;
-};
-
-// Security is now part of the http block — fold legacy standalone security blocks into
-// their nearest http block; orphans with content become a free-text block so nothing is lost
-const migrateBlocks = (blocks) => {
-  const migrated = [];
-  const pending = [];
-  for (const block of blocks) {
-    if (block.type === "http") {
-      const httpBlock = {
-        title: "",
-        endpoint: "",
-        method: "GET",
-        headers: [],
-        fallback: "",
-        ...block,
-      };
-      // Older drafts had no toggle — open the table when any row already has content
-      if (!("headersEnabled" in block)) {
-        httpBlock.headersEnabled = httpBlock.headers.some(
-          (h) => h.key?.trim() || h.value?.trim(),
-        );
-      }
-      for (const security of pending.splice(0))
-        foldSecurityIntoHttp(httpBlock, security);
-      migrated.push(httpBlock);
-    } else if (block.type === "security") {
-      const target = migrated.findLast((b) => b.type === "http");
-      if (target) foldSecurityIntoHttp(target, block);
-      else pending.push(block);
-    } else {
-      migrated.push(block);
-    }
-  }
-  for (const security of pending) {
-    if (
-      !security.fallback?.trim() &&
-      (!security.authType || security.authType === "None")
-    )
-      continue;
-    migrated.push({
-      ...makeBlock("freeText"),
-      title: "אבטחה וטיפול בשגיאות",
-      text: [
-        `Authentication: ${security.authType ?? "None"}`,
-        security.fallback ?? "",
-      ]
-        .filter((t) => t.trim())
-        .join("\n"),
-    });
-  }
-  return migrated;
-};
-
-const loadDraft = () => {
-  try {
-    return JSON.parse(localStorage.getItem(DRAFT_KEY));
-  } catch {
-    return null;
-  }
-};
-const draft = loadDraft();
-// The legacy linear flow is round-tripped untouched so a rollback never loses text the PM
-// already wrote — migrateWorkflows only reads it when no `workflows` key exists yet
-const legacyFlow = Array.isArray(draft?.flow) ? draft.flow : null;
-const initialWizard = sanitizeWizard(draft?.wizard);
+import { DRAFT_KEY, THEME_KEY } from "./persistence/keys.js";
+import { defaultAdmin, defaultBusiness } from "./persistence/defaults.js";
+import {
+  draft,
+  legacyFlow,
+  initialWizard,
+  getInitialAdmin,
+  getInitialBusiness,
+  getInitialBlocks,
+} from "./persistence/draft.js";
+import { stepFromScope, stepHasError } from "./wizard/stepHelpers.js";
 
 export default function App() {
-  const [admin, setAdmin] = useState(() =>
-    draft?.admin ? migrateAdmin(draft.admin) : defaultAdmin(),
-  );
-  const [business, setBusiness] = useState(() =>
-    migrateBusiness(draft?.business),
-  );
+  const [admin, setAdmin] = useState(getInitialAdmin);
+  const [business, setBusiness] = useState(getInitialBusiness);
   const wf = useWorkflows(() => migrateWorkflows(draft));
-  const [blocks, setBlocks] = useState(() =>
-    migrateBlocks(draft?.blocks ?? []),
-  );
+  const [blocks, setBlocks] = useState(getInitialBlocks);
   const [wizardStep, setWizardStep] = useState(initialWizard.step);
   const [wizardMaxReached, setWizardMaxReached] = useState(
     initialWizard.maxReached,
@@ -343,89 +200,14 @@ export default function App() {
     );
   };
 
-  const renderBlockBody = (block) => {
-    const errors = fieldErrors(shown.blocks.get(block.id) ?? []);
-    switch (block.type) {
-      case "freeText":
-        return (
-          <FreeTextBlock
-            block={block}
-            errors={errors}
-            onUpdate={(patch) => updateBlock(block.id, patch)}
-          />
-        );
-      case "testData":
-        return (
-          <TestDataBlock
-            block={block}
-            errors={errors}
-            onUpdate={(patch) => updateBlock(block.id, patch)}
-          />
-        );
-      case "table":
-        return (
-          <TableBlock
-            block={block}
-            errors={errors}
-            onUpdate={(patch) => updateBlock(block.id, patch)}
-          />
-        );
-      default:
-        return null;
-    }
-  };
-
   return (
     <div className="min-h-screen pb-40">
-      <header className="sticky top-0 z-40 border-b border-stone-200/70 bg-paper/85 backdrop-blur-md dark:border-stone-800/80">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-5 py-3">
-          <div className="flex items-center gap-3">
-            <span className="flex size-8 items-center justify-center rounded-lg bg-teal-700 font-display text-[15px] font-black text-white shadow-sm shadow-teal-700/30">
-              א
-            </span>
-            <div>
-              <div className="font-display text-[17px] font-bold leading-none text-ink">
-                בונה אפיונים
-              </div>
-              <div className="mt-1 text-[11.5px] leading-none text-stone-500 dark:text-stone-400">
-                אפיונים טכניים לאינטגרציות · Glassix
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="hidden items-center gap-1.5 text-[12px] text-stone-400 sm:flex dark:text-stone-500">
-              {saveState === "saving" ? (
-                <>
-                  <CloudUpload className="size-3.5" />
-                  שומר...
-                </>
-              ) : (
-                <>
-                  <Check className="size-3.5 text-teal-600 dark:text-teal-400" />
-                  נשמר אוטומטית
-                </>
-              )}
-            </span>
-            <button
-              type="button"
-              title={dark ? "מעבר למצב בהיר" : "מעבר למצב כהה"}
-              aria-label={dark ? "מעבר למצב בהיר" : "מעבר למצב כהה"}
-              onClick={toggleTheme}
-              className="rounded-lg p-2 text-stone-400 transition-colors hover:bg-stone-100 hover:text-ink dark:text-stone-500 dark:hover:bg-stone-800"
-            >
-              {dark ? <Sun className="size-4" /> : <Moon className="size-4" />}
-            </button>
-            <button
-              type="button"
-              title="איפוס טיוטה"
-              onClick={resetDraft}
-              className="rounded-lg p-2 text-stone-400 transition-colors hover:bg-stone-100 hover:text-ink dark:text-stone-500 dark:hover:bg-stone-800"
-            >
-              <RotateCcw className="size-4" />
-            </button>
-          </div>
-        </div>
-      </header>
+      <AppHeader
+        saveState={saveState}
+        dark={dark}
+        onToggleTheme={toggleTheme}
+        onReset={resetDraft}
+      />
 
       <WizardStepper
         step={wizardStep}
@@ -523,7 +305,11 @@ export default function App() {
                     submitted={attempted[3]}
                     onDelete={() => deleteBlock(block.id)}
                   >
-                    {renderBlockBody(block)}
+                    <BlockBody
+                      block={block}
+                      errors={fieldErrors(shown.blocks.get(block.id) ?? [])}
+                      onUpdate={(patch) => updateBlock(block.id, patch)}
+                    />
                   </DynamicBlock>
                 ),
               )}
@@ -542,37 +328,14 @@ export default function App() {
         )}
       </main>
 
-      <footer className="pointer-events-none fixed inset-x-0 bottom-0 z-40 bg-gradient-to-t from-paper via-paper/85 to-transparent pb-6 pt-14">
-        <div className="pointer-events-auto mx-auto flex max-w-3xl items-center justify-between px-5">
-          {wizardStep > 1 ? (
-            <GhostButton onClick={goPrev}>הקודם</GhostButton>
-          ) : (
-            <span />
-          )}
-          {wizardStep < 3 ? (
-            <button
-              type="button"
-              onClick={goNext}
-              className="inline-flex items-center gap-2 rounded-2xl bg-teal-700 px-7 py-3 text-[15px] font-bold text-white shadow-lg shadow-teal-700/25 transition-all duration-200 hover:-translate-y-0.5 hover:bg-teal-800 hover:shadow-xl hover:shadow-teal-700/30 active:translate-y-0 active:scale-[0.99]"
-            >
-              הבא
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={generate}
-              className={`group inline-flex items-center gap-2.5 rounded-2xl px-8 py-3.5 text-[16px] font-bold text-white transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] ${
-                attempted[3] && errorCount > 0
-                  ? "bg-teal-700/45 shadow-md shadow-teal-700/10 hover:bg-teal-700/60"
-                  : "bg-teal-700 shadow-lg shadow-teal-700/25 hover:bg-teal-800 hover:shadow-xl hover:shadow-teal-700/30"
-              }`}
-            >
-              <Sparkles className="size-[18px] transition-transform duration-200 group-hover:rotate-12" />
-              צור פרומפט לאפיון
-            </button>
-          )}
-        </div>
-      </footer>
+      <AppFooter
+        wizardStep={wizardStep}
+        attempted={attempted}
+        errorCount={errorCount}
+        onPrev={goPrev}
+        onNext={goNext}
+        onGenerate={generate}
+      />
 
       {toast && (
         <div className="pointer-events-none fixed inset-x-0 bottom-24 z-50 flex justify-center px-4">
