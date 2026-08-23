@@ -1,6 +1,5 @@
 import { ShieldCheck } from "lucide-react";
-import { Field, Textarea, Select, Checkbox } from "../ui.jsx";
-import { AUTH_TYPES } from "../../constants.js";
+import { Field, Textarea, Checkbox } from "../ui.jsx";
 
 export default function SecurityFields({ block, errors, onUpdate }) {
   return (
@@ -10,19 +9,6 @@ export default function SecurityFields({ block, errors, onUpdate }) {
         אבטחה וטיפול בשגיאות
       </h4>
       <div className="space-y-4">
-        <Field label="סוג אימות" hint="איך הקריאה מזוהה מול מערכת היעד">
-          <Select
-            value={block.authType}
-            onChange={(e) => onUpdate({ authType: e.target.value })}
-            wrapperClassName="sm:w-1/2"
-          >
-            {AUTH_TYPES.map((type) => (
-              <option key={type} value={type}>
-                {type}
-              </option>
-            ))}
-          </Select>
-        </Field>
         <div className="grid gap-4 sm:grid-cols-1">
           <div className="rounded-xl border border-stone-200 p-3.5 dark:border-stone-800">
             <Checkbox

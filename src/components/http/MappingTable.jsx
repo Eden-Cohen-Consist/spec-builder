@@ -1,5 +1,5 @@
-import { Plus, Trash2, ChevronDown } from "lucide-react";
-import { Checkbox, GhostButton, DeleteButton } from "../ui.jsx";
+import { Trash2, ChevronDown } from "lucide-react";
+import { Checkbox, DeleteButton, GhostAddRow } from "../ui.jsx";
 import { FIELD_TYPES } from "../../constants.js";
 import { makeMappingRow } from "../../lib.js";
 
@@ -113,12 +113,10 @@ export default function MappingTable({
                 </td>
               </tr>
             ))}
+            <GhostAddRow colSpan={6} onAdd={addRow} />
           </tbody>
         </table>
       </div>
-      <GhostButton icon={Plus} onClick={addRow} className="mt-2.5">
-        הוסף שורה
-      </GhostButton>
     </div>
   );
 }

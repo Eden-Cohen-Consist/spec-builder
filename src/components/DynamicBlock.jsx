@@ -7,6 +7,7 @@ export default function DynamicBlock({
   issues = [],
   submitted = false,
   onDelete,
+  headerActions = null,
   children,
 }) {
   const meta = BLOCK_META[block.type];
@@ -44,6 +45,7 @@ export default function DynamicBlock({
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          {headerActions}
           {submitted ? <BlockStatusChip issues={issues} /> : null}
           <button
             type="button"

@@ -1,5 +1,5 @@
-import { Plus, Trash2, CircleAlert } from 'lucide-react'
-import { GhostButton, DeleteButton } from './ui.jsx'
+import { Trash2, CircleAlert } from 'lucide-react'
+import { DeleteButton, GhostAddRow } from './ui.jsx'
 import { makeTestRow } from '../lib.js'
 
 export default function TestDataBlock({ block, errors = new Map(), onUpdate }) {
@@ -63,6 +63,7 @@ export default function TestDataBlock({ block, errors = new Map(), onUpdate }) {
                 </td>
               </tr>
             ))}
+            <GhostAddRow colSpan={4} onAdd={addRow} />
           </tbody>
         </table>
       </div>
@@ -72,9 +73,6 @@ export default function TestDataBlock({ block, errors = new Map(), onUpdate }) {
           {errors.get('rows')}
         </p>
       )}
-      <GhostButton icon={Plus} onClick={addRow} className="mt-2.5">
-        הוסף שורה
-      </GhostButton>
     </div>
   )
 }

@@ -14,7 +14,7 @@ import AdminSection from "./components/AdminSection.jsx";
 import BusinessSection from "./components/BusinessSection.jsx";
 import WorkflowSection from "./components/workflow/WorkflowSection.jsx";
 import DynamicBlock from "./components/DynamicBlock.jsx";
-import HttpBlock from "./components/HttpBlock.jsx";
+import { HttpBlockCard } from "./components/HttpBlock.jsx";
 import FreeTextBlock from "./components/FreeTextBlock.jsx";
 import TestDataBlock from "./components/TestDataBlock.jsx";
 import TableBlock from "./components/TableBlock.jsx";
@@ -26,7 +26,6 @@ import {
   makeBlock,
   makeContactRow,
   makeDepartmentRow,
-  makeTriggerRow,
   compileSpec,
 } from "./lib.js";
 import { useWorkflows } from "./workflow/useWorkflows.js";
@@ -44,7 +43,7 @@ const defaultAdmin = () => ({
   departmentCreated: false,
   departments: [makeDepartmentRow()],
 });
-const defaultBusiness = () => ({ goal: "", triggers: [makeTriggerRow()] });
+const defaultBusiness = () => ({ goal: "" });
 
 // Older drafts stored contacts as free text and http blocks without endpoint/method/headers
 const migrateAdmin = (saved) => {
@@ -64,31 +63,22 @@ const migrateAdmin = (saved) => {
   return admin;
 };
 
-// Older drafts stored a single trigger string instead of a triggers list
+// Drop legacy trigger fields — workflow triggers own that concern now
 const migrateBusiness = (saved) => {
   if (!saved) return defaultBusiness();
-  const goal = saved.goal ?? "";
-  if (Array.isArray(saved.triggers) && saved.triggers.length > 0)
-    return { goal, triggers: saved.triggers };
-  return {
-    goal,
-    triggers: [
-      {
-        ...makeTriggerRow(),
-        text: typeof saved.trigger === "string" ? saved.trigger : "",
-      },
-    ],
-  };
+  return { goal: saved.goal ?? "" };
 };
 
 const foldSecurityIntoHttp = (httpBlock, security) => {
-  if (security.authType && security.authType !== "None")
-    httpBlock.authType = security.authType;
-  if (security.fallback?.trim()) {
-    httpBlock.fallback = [httpBlock.fallback, security.fallback]
-      .filter((t) => t?.trim())
-      .join("\n");
-  }
+  // authType UI was removed — keep any legacy value as a note in fallback
+  const authNote =
+    security.authType && security.authType !== "None"
+      ? `Authentication: ${security.authType}`
+      : "";
+  const merged = [httpBlock.fallback, authNote, security.fallback]
+    .filter((t) => t?.trim())
+    .join("\n");
+  if (merged) httpBlock.fallback = merged;
 };
 
 // Security is now part of the http block — fold legacy standalone security blocks into
@@ -103,10 +93,15 @@ const migrateBlocks = (blocks) => {
         endpoint: "",
         method: "GET",
         headers: [],
-        authType: "None",
         fallback: "",
         ...block,
       };
+      // Older drafts had no toggle — open the table when any row already has content
+      if (!("headersEnabled" in block)) {
+        httpBlock.headersEnabled = httpBlock.headers.some(
+          (h) => h.key?.trim() || h.value?.trim(),
+        );
+      }
       for (const security of pending.splice(0))
         foldSecurityIntoHttp(httpBlock, security);
       migrated.push(httpBlock);
@@ -293,14 +288,6 @@ export default function App() {
   const renderBlockBody = (block) => {
     const errors = fieldErrors(shown.blocks.get(block.id) ?? []);
     switch (block.type) {
-      case "http":
-        return (
-          <HttpBlock
-            block={block}
-            errors={errors}
-            onUpdate={(patch) => updateBlock(block.id, patch)}
-          />
-        );
       case "freeText":
         return (
           <FreeTextBlock
@@ -450,17 +437,29 @@ export default function App() {
         </div>
 
         <div className="space-y-5">
-          {blocks.map((block) => (
-            <DynamicBlock
-              key={block.id}
-              block={block}
-              issues={shown.blocks.get(block.id) ?? []}
-              submitted={submitted}
-              onDelete={() => deleteBlock(block.id)}
-            >
-              {renderBlockBody(block)}
-            </DynamicBlock>
-          ))}
+          {blocks.map((block) =>
+            block.type === "http" ? (
+              <HttpBlockCard
+                key={block.id}
+                block={block}
+                issues={shown.blocks.get(block.id) ?? []}
+                submitted={submitted}
+                onDelete={() => deleteBlock(block.id)}
+                errors={fieldErrors(shown.blocks.get(block.id) ?? [])}
+                onUpdate={(patch) => updateBlock(block.id, patch)}
+              />
+            ) : (
+              <DynamicBlock
+                key={block.id}
+                block={block}
+                issues={shown.blocks.get(block.id) ?? []}
+                submitted={submitted}
+                onDelete={() => deleteBlock(block.id)}
+              >
+                {renderBlockBody(block)}
+              </DynamicBlock>
+            ),
+          )}
 
           <div
             className="animate-rise relative "

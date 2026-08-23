@@ -1,25 +1,62 @@
+import { useState } from "react";
 import { MoveLeft, Globe } from "lucide-react";
 import { Field, Input, Select } from "./ui.jsx";
 import { HTTP_METHODS } from "../constants.js";
 import { isThirdParty, makeHeaderRow } from "../lib.js";
-import CurlImport from "./http/CurlImport.jsx";
+import DynamicBlock from "./DynamicBlock.jsx";
+import CurlImport, { CurlImportTrigger } from "./http/CurlImport.jsx";
 import PayloadEditor from "./http/PayloadEditor.jsx";
 import HeadersEditor from "./http/HeadersEditor.jsx";
 import MappingTable from "./http/MappingTable.jsx";
 import SecurityFields from "./http/SecurityFields.jsx";
 
-export default function HttpBlock({ block, errors = new Map(), onUpdate }) {
+/** Card shell — cURL trigger sits in the header next to delete, panel opens in the body. */
+export function HttpBlockCard({
+  block,
+  issues,
+  submitted,
+  onDelete,
+  errors,
+  onUpdate,
+}) {
+  const [curlOpen, setCurlOpen] = useState(false);
+  return (
+    <DynamicBlock
+      block={block}
+      issues={issues}
+      submitted={submitted}
+      onDelete={onDelete}
+      headerActions={
+        curlOpen ? null : (
+          <CurlImportTrigger onClick={() => setCurlOpen(true)} />
+        )
+      }
+    >
+      <HttpBlock
+        block={block}
+        errors={errors}
+        onUpdate={onUpdate}
+        curlOpen={curlOpen}
+        onCurlOpenChange={setCurlOpen}
+      />
+    </DynamicBlock>
+  );
+}
+
+function HttpBlock({ block, errors = new Map(), onUpdate, curlOpen, onCurlOpenChange }) {
   const thirdParty = isThirdParty(block.destination);
 
   const applyCurl = (parsed) => {
+    const headers = parsed.headers.map(({ key, value }) => ({
+      ...makeHeaderRow(),
+      key,
+      value,
+    }));
     const patch = {
       endpoint: parsed.url,
       method: HTTP_METHODS.includes(parsed.method) ? parsed.method : "GET",
-      headers: parsed.headers.map(({ key, value }) => ({
-        ...makeHeaderRow(),
-        key,
-        value,
-      })),
+      headers,
+      headersEnabled: headers.length > 0,
     };
     if (parsed.body) patch.requestPayload = parsed.body;
     onUpdate(patch);
@@ -27,7 +64,11 @@ export default function HttpBlock({ block, errors = new Map(), onUpdate }) {
 
   return (
     <div>
-      <CurlImport onImport={applyCurl} />
+      <CurlImport
+        open={curlOpen}
+        onOpenChange={onCurlOpenChange}
+        onImport={applyCurl}
+      />
 
       <Field
         label="כותרת הבלוק"
@@ -42,6 +83,43 @@ export default function HttpBlock({ block, errors = new Map(), onUpdate }) {
           placeholder="למשל: פתיחת לקוח ב-Priority"
         />
       </Field>
+
+      <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-end gap-3">
+        <Field label="מערכת מקור" required error={errors.get("source")}>
+          <Input
+            dir="auto"
+            value={block.source}
+            invalid={errors.has("source")}
+            onChange={(e) => onUpdate({ source: e.target.value })}
+            placeholder="Glassix"
+          />
+        </Field>
+        <MoveLeft
+          aria-hidden="true"
+          className="mb-2.5 size-5 text-stone-300 dark:text-stone-600"
+        />
+        <Field
+          label="מערכת יעד"
+          required
+          error={errors.get("destination")}
+          afterLabel={
+            thirdParty ? (
+              <span className="animate-pop inline-flex items-center gap-1 rounded-full border border-amber-200/80 bg-amber-50 px-2 py-px text-[11px] font-bold text-amber-700 dark:border-amber-500/25 dark:bg-amber-950/40 dark:text-amber-400">
+                <Globe className="size-3" />
+                צד שלישי
+              </span>
+            ) : null
+          }
+        >
+          <Input
+            dir="auto"
+            value={block.destination}
+            invalid={errors.has("destination")}
+            onChange={(e) => onUpdate({ destination: e.target.value })}
+            placeholder="Salesforce / Priority / Consist..."
+          />
+        </Field>
+      </div>
 
       <div className="mt-4 grid grid-cols-[128px_1fr] items-end gap-3">
         <Field label="Method">
@@ -73,48 +151,12 @@ export default function HttpBlock({ block, errors = new Map(), onUpdate }) {
           />
         </Field>
       </div>
-      <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-3">
-        <Field label="מערכת מקור" required error={errors.get("source")}>
-          <Input
-            dir="auto"
-            value={block.source}
-            invalid={errors.has("source")}
-            onChange={(e) => onUpdate({ source: e.target.value })}
-            placeholder="Glassix"
-          />
-        </Field>
-        <MoveLeft
-          aria-hidden="true"
-          className="mb-2.5 size-5 text-stone-300 dark:text-stone-600"
-        />
-        <Field
-          required
-          error={errors.get("destination")}
-          label={
-            <span className="flex items-center gap-2">
-              מערכת יעד
-              {thirdParty && (
-                <span className="animate-pop inline-flex items-center gap-1 rounded-full border border-amber-200/80 bg-amber-50 px-2 py-px text-[11px] font-bold text-amber-700 dark:border-amber-500/25 dark:bg-amber-950/40 dark:text-amber-400">
-                  <Globe className="size-3" />
-                  צד שלישי
-                </span>
-              )}
-            </span>
-          }
-        >
-          <Input
-            dir="auto"
-            value={block.destination}
-            invalid={errors.has("destination")}
-            onChange={(e) => onUpdate({ destination: e.target.value })}
-            placeholder="Salesforce / Priority / Consist..."
-          />
-        </Field>
-      </div>
 
       <HeadersEditor
         headers={block.headers}
+        enabled={Boolean(block.headersEnabled)}
         onChange={(headers) => onUpdate({ headers })}
+        onEnabledChange={(headersEnabled) => onUpdate({ headersEnabled })}
       />
 
       {thirdParty && (

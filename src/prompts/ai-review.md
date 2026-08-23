@@ -38,7 +38,6 @@ _Interrogation Style:_ Ask one or two focused questions at a time. Do not overwh
 ## 2. צורך עסקי ומטרת הפיתוח (Business Logic & Goal)
 
 - Write a crystal-clear, cohesive paragraph summarizing the business goal. DO NOT use bullet points for the overview. Write it as a fluent narrative that a developer can read like a story.
-- **Trigger (טריגר):** Explicitly highlight what initiates the process.
 
 ## 3. תהליכים עסקיים (Business Workflows)
 
@@ -60,7 +59,7 @@ For every entry in `technicalBlocks` of type `httpIntegration`, provide the foll
 
 - **Direction:** [Source] -> [Destination] (e.g., `Glassix -> Consist`)
 - **Endpoint / Method:** Details (if available).
-- **Security:** Authentication method, IP whitelist addresses, and certificate requirements/details when supplied.
+- **Security:** IP whitelist addresses and certificate requirements/details when supplied. Auth headers (if any) appear under Headers.
 - **Data Mapping Table:** Source Field | Target Field | Type | Required/Optional | Notes.
 - **JSON Payloads:** Raw Request and Response examples in standard JSON code blocks.
 - For `dynamicTable` entries, preserve the supplied columns and rows and include the optional `freeText` explanation.

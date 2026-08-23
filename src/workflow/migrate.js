@@ -95,7 +95,7 @@ const PATH_FALLBACK_LABELS = ['כן', 'לא']
  * empty branch paths still become nodes — dropping them would leave the DECISION with
  * fewer than two routes and would discard text when only one field was filled.
  */
-export const workflowFromLegacyFlow = (flow, business) => {
+export const workflowFromLegacyFlow = (flow) => {
   const workflowId = makeId()
   const used = new Set([workflowId])
   const nodes = []
@@ -175,14 +175,11 @@ export const workflowFromLegacyFlow = (flow, business) => {
   nodes.push(end)
   connect(end.id)
 
-  // Reuse the business trigger text if one was written — purely additive, nothing is lost
-  const triggerText = str(business?.triggers?.[0]?.text).trim()
-
   return makeWorkflow({
     id: workflowId,
     name: 'תהליך ראשי',
-    triggerType: triggerText ? 'EVENT' : 'MANUAL',
-    triggerDescription: triggerText,
+    triggerType: 'MANUAL',
+    triggerDescription: '',
     nodes,
     edges,
   })
@@ -198,7 +195,7 @@ export const migrateWorkflows = (draft) => {
     if (sanitized.length > 0) return sanitized
   }
   if (Array.isArray(draft?.flow) && draft.flow.length > 0) {
-    return [workflowFromLegacyFlow(draft.flow, draft.business)]
+    return [workflowFromLegacyFlow(draft.flow)]
   }
   return [makeWorkflow({ name: 'תהליך ראשי' })]
 }

@@ -5,7 +5,7 @@ import { countIssues } from "../validation/issue.js";
 
 const SECTION_GROUPS = [
   { key: "admin", label: "סעיף 1 · הקשר אדמיניסטרטיבי" },
-  { key: "business", label: "סעיף 2 · צורך עסקי וטריגר" },
+  { key: "business", label: "סעיף 2 · צורך עסקי" },
   { key: "workflow", label: "סעיף 3 · תהליכים עסקיים" },
 ];
 

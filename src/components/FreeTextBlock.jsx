@@ -5,7 +5,7 @@ export default function FreeTextBlock({ block, errors = new Map(), onUpdate }) {
     <div className="space-y-4">
       <Field label="כותרת">
         <Input
-          dir="auto"
+          dir="rtl"
           value={block.title}
           onChange={(e) => onUpdate({ title: e.target.value })}
           placeholder="על מה הבלוק הזה?"
@@ -13,7 +13,7 @@ export default function FreeTextBlock({ block, errors = new Map(), onUpdate }) {
       </Field>
       <Field label="תיאור" required error={errors.get('text')}>
         <Textarea
-          dir="auto"
+          dir="rtl"
           rows={5}
           value={block.text}
           invalid={errors.has('text')}

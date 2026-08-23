@@ -1,5 +1,5 @@
 import { Plus, Trash2, X, CircleAlert } from 'lucide-react'
-import { Field, Input, Textarea, GhostButton, DeleteButton, invalidCell } from './ui.jsx'
+import { Field, Input, Textarea, DeleteButton, GhostAddRow, invalidCell } from './ui.jsx'
 import { makeTableColumn, makeTableRow } from '../lib.js'
 
 export default function TableBlock({ block, errors = new Map(), onUpdate }) {
@@ -129,6 +129,7 @@ export default function TableBlock({ block, errors = new Map(), onUpdate }) {
                 </td>
               </tr>
             ))}
+            <GhostAddRow colSpan={block.columns.length + 1} onAdd={addRow} />
           </tbody>
         </table>
       </div>
@@ -138,14 +139,6 @@ export default function TableBlock({ block, errors = new Map(), onUpdate }) {
           {errors.get('rows')}
         </p>
       )}
-      <div className="mt-2.5 flex gap-2.5">
-        <GhostButton icon={Plus} onClick={addRow}>
-          הוסף שורה
-        </GhostButton>
-        <GhostButton icon={Plus} onClick={addColumn}>
-          הוסף עמודה
-        </GhostButton>
-      </div>
     </div>
   )
 }

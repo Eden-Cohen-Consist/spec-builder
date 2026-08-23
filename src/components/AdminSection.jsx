@@ -1,7 +1,7 @@
 import { useMemo } from "react";
-import { Plus, Trash2, CircleAlert } from "lucide-react";
+import { Trash2, CircleAlert } from "lucide-react";
 import LockedSection from "./LockedSection.jsx";
-import { Field, Input, Checkbox, GhostButton, DeleteButton, invalidCell } from "./ui.jsx";
+import { Field, Input, Checkbox, DeleteButton, GhostAddRow, invalidCell } from "./ui.jsx";
 import { makeContactRow, makeDepartmentRow } from "../lib.js";
 import { fieldErrors } from "../validation/index.js";
 
@@ -161,6 +161,7 @@ export default function AdminSection({ value, onChange, issues = [], submitted =
                   </tr>
                 );
               })}
+              <GhostAddRow colSpan={5} label="הוסף איש קשר" onAdd={addContact} />
             </tbody>
           </table>
         </div>
@@ -170,9 +171,6 @@ export default function AdminSection({ value, onChange, issues = [], submitted =
             {errors.get("contacts")}
           </p>
         )}
-        <GhostButton icon={Plus} onClick={addContact} className="mt-2.5">
-          הוסף איש קשר
-        </GhostButton>
       </div>
 
       <div className="mt-4 border-t border-stone-100 pt-4 dark:border-stone-800">
@@ -266,16 +264,14 @@ export default function AdminSection({ value, onChange, issues = [], submitted =
                       </td>
                     </tr>
                   ))}
+                  <GhostAddRow
+                    colSpan={4}
+                    label="הוסף מחלקה"
+                    onAdd={addDepartment}
+                  />
                 </tbody>
               </table>
             </div>
-            <GhostButton
-              icon={Plus}
-              onClick={addDepartment}
-              className="mt-2.5"
-            >
-              הוסף מחלקה
-            </GhostButton>
           </div>
         )}
       </div>

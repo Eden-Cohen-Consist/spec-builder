@@ -56,15 +56,13 @@ export const validateBusiness = (business) => {
 
   if (blank(business.goal))
     push('error', 'BUSINESS_GOAL', 'חסרה המטרה העסקית', { field: 'goal' })
-  if (!business.triggers.some((t) => !blank(t.text)))
-    push('error', 'BUSINESS_NO_TRIGGER', 'נדרש לפחות טריגר אחד', { field: 'triggers' })
 
   return issues
 }
 
 /**
  * A block the PM has not touched yet must stay neutral, so this deliberately ignores the
- * defaults makeBlock() hands out (`method: 'GET'`, `authType: 'None'`, one blank mapping row,
+ * defaults makeBlock() hands out (`method: 'GET'`, one blank mapping row,
  * two blank table columns) and looks only at what a person could have typed.
  */
 export const isBlockEmpty = (block) => {
@@ -84,6 +82,7 @@ export const isBlockEmpty = (block) => {
         ].every(blank) &&
         !block.ipWhitelistRequired &&
         !block.certificateRequired &&
+        !block.headersEnabled &&
         block.headers.every((h) => blank(h.key) && blank(h.value)) &&
         block.mapping.every(
           (r) => blank(r.sourceField) && blank(r.targetField) && blank(r.notes),
@@ -154,8 +153,6 @@ export const validateBlock = (block) => {
         })
       if (blank(block.fallback))
         push('warning', 'HTTP_NO_FALLBACK', 'כדאי לתאר טיפול בשגיאות', { field: 'fallback' })
-      if (block.authType === 'None')
-        push('warning', 'HTTP_NO_AUTH', 'לא הוגדר אימות לקריאה', { field: 'authType' })
       break
     }
 

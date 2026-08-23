@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { FileText, X, Copy } from 'lucide-react'
 import { Field } from './ui.jsx'
-import { markdownToWordHtml } from '../lib.js'
+import { markdownToWordHtml, stripMarkdownFence } from '../lib.js'
 
 export default function MarkdownToWordModal({ onClose, onSuccess }) {
   const [text, setText] = useState('')
@@ -21,11 +21,11 @@ export default function MarkdownToWordModal({ onClose, onSuccess }) {
       return
     }
     try {
-      const html = markdownToWordHtml(text)
+      const source = stripMarkdownFence(text)
       await navigator.clipboard.write([
         new ClipboardItem({
-          'text/html': new Blob([html], { type: 'text/html' }),
-          'text/plain': new Blob([text], { type: 'text/plain' }),
+          'text/html': new Blob([markdownToWordHtml(source)], { type: 'text/html' }),
+          'text/plain': new Blob([source], { type: 'text/plain' }),
         }),
       ])
       onSuccess()

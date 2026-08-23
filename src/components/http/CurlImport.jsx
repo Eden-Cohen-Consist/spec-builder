@@ -3,13 +3,21 @@ import { Terminal } from "lucide-react";
 import { GhostButton } from "../ui.jsx";
 import { parseCurl } from "../../lib.js";
 
-export default function CurlImport({ onImport }) {
-  const [open, setOpen] = useState(false);
+/** Compact trigger for the block header — keeps the expand panel out of the chrome. */
+export function CurlImportTrigger({ onClick }) {
+  return (
+    <GhostButton onClick={onClick} className="!opacity-100">
+      ייבוא מ-cURL
+    </GhostButton>
+  );
+}
+
+export default function CurlImport({ onImport, open, onOpenChange }) {
   const [text, setText] = useState("");
   const [error, setError] = useState("");
 
   const close = () => {
-    setOpen(false);
+    onOpenChange(false);
     setText("");
     setError("");
   };
@@ -26,13 +34,7 @@ export default function CurlImport({ onImport }) {
     close();
   };
 
-  if (!open) {
-    return (
-      <div className="flex justify-start">
-        <GhostButton onClick={() => setOpen(true)}>ייבוא מ-cURL</GhostButton>
-      </div>
-    );
-  }
+  if (!open) return null;
 
   return (
     <div className="animate-block-in mb-5 space-y-2.5 rounded-xl border border-stone-200 bg-stone-50/60 p-4 dark:border-stone-800 dark:bg-stone-950/40">

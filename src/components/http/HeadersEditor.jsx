@@ -1,8 +1,8 @@
-import { Plus, Trash2 } from "lucide-react";
-import { GhostButton, DeleteButton } from "../ui.jsx";
+import { Trash2 } from "lucide-react";
+import { Checkbox, DeleteButton, GhostAddRow } from "../ui.jsx";
 import { makeHeaderRow } from "../../lib.js";
 
-export default function HeadersEditor({ headers, onChange }) {
+export default function HeadersEditor({ headers, enabled, onChange, onEnabledChange }) {
   const setRow = (id, patch) =>
     onChange(
       headers.map((row) => (row.id === id ? { ...row, ...patch } : row)),
@@ -11,15 +11,14 @@ export default function HeadersEditor({ headers, onChange }) {
   const addRow = () => onChange([...headers, makeHeaderRow()]);
 
   return (
-    <div className="mt-5">
-      <h4 className="mb-2 text-[13.5px] font-bold text-stone-700 dark:text-stone-300">
-        Headers{" "}
-        <span className="font-normal text-stone-400 dark:text-stone-500">
-          (אופציונלי)
-        </span>
-      </h4>
-      {headers.length > 0 && (
-        <div className="animate-block-in overflow-hidden rounded-xl border border-stone-200 dark:border-stone-800">
+    <div className="mt-5 rounded-xl border border-stone-200 p-3.5 dark:border-stone-800">
+      <Checkbox
+        checked={enabled}
+        onChange={onEnabledChange}
+        label="הוסף Headers"
+      />
+      {enabled && (
+        <div className="animate-pop mt-3 overflow-hidden rounded-xl border border-stone-200 dark:border-stone-800">
           <table className="w-full text-[13.5px]">
             <thead>
               <tr className="border-b border-stone-200 bg-stone-50 text-[12px] font-semibold text-stone-500 dark:border-stone-800 dark:bg-stone-800/50 dark:text-stone-400">
@@ -67,17 +66,11 @@ export default function HeadersEditor({ headers, onChange }) {
                   </td>
                 </tr>
               ))}
+              <GhostAddRow colSpan={3} label="הוסף Header" onAdd={addRow} />
             </tbody>
           </table>
         </div>
       )}
-      <GhostButton
-        icon={Plus}
-        onClick={addRow}
-        className={headers.length > 0 ? "mt-2.5" : ""}
-      >
-        הוסף Header
-      </GhostButton>
     </div>
   );
 }
