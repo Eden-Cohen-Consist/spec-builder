@@ -4,6 +4,19 @@ import AI_REVIEW_PROMPT from './prompts/ai-review.md?raw'
 
 export const makeId = () => crypto.randomUUID()
 
+const WIZARD_STEPS = new Set([1, 2, 3])
+
+/** Clamp a persisted wizard cursor. Missing or junk values fall back to step 1. */
+export const sanitizeWizard = (raw) => {
+  const toStep = (value) => {
+    const n = Number(value)
+    return WIZARD_STEPS.has(n) ? n : 1
+  }
+  const step = toStep(raw?.step)
+  const maxReached = Math.max(step, toStep(raw?.maxReached))
+  return { step, maxReached }
+}
+
 export const isThirdParty = (destination) => {
   const dest = destination.trim().toLowerCase()
   return dest !== '' && !INTERNAL_SYSTEMS.includes(dest)
