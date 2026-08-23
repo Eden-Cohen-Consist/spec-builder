@@ -1,12 +1,12 @@
-import { Plus, Trash2 } from "lucide-react";
+import { useMemo } from "react";
+import { Trash2, CircleAlert } from "lucide-react";
 import LockedSection from "./LockedSection.jsx";
-import { Field, Input, Checkbox, GhostButton, DeleteButton } from "./ui.jsx";
-import { makeContactRow, hasContactContent } from "../lib.js";
+import { Field, Input, Checkbox, DeleteButton, GhostAddRow, invalidCell } from "./ui.jsx";
+import { makeContactRow, makeDepartmentRow } from "../lib.js";
+import { fieldErrors } from "../validation/index.js";
 
-const invalidCell =
-  "rounded-lg ring-2 ring-inset ring-red-400/70 dark:ring-red-500/50";
-
-export default function AdminSection({ value, onChange, invalid, delay }) {
+export default function AdminSection({ value, onChange, issues = [], submitted = false, delay }) {
+  const errors = useMemo(() => fieldErrors(issues), [issues]);
   const set = (patch) => onChange({ ...value, ...patch });
   const setContact = (id, patch) =>
     set({
@@ -18,6 +18,20 @@ export default function AdminSection({ value, onChange, invalid, delay }) {
     set({ contacts: value.contacts.filter((c) => c.id !== id) });
   const addContact = () =>
     set({ contacts: [...value.contacts, makeContactRow()] });
+  const setDepartment = (id, patch) =>
+    set({
+      departments: value.departments.map((department) =>
+        department.id === id ? { ...department, ...patch } : department,
+      ),
+    });
+  const removeDepartment = (id) =>
+    set({
+      departments: value.departments.filter(
+        (department) => department.id !== id,
+      ),
+    });
+  const addDepartment = () =>
+    set({ departments: [...value.departments, makeDepartmentRow()] });
 
   return (
     <LockedSection
@@ -25,19 +39,23 @@ export default function AdminSection({ value, onChange, invalid, delay }) {
       number="1"
       title="הקשר אדמיניסטרטיבי"
       subtitle="מי הלקוח ומי מוביל את הפרויקט"
+      issues={issues}
+      submitted={submitted}
       delay={delay}
     >
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="שם הלקוח">
+        <Field label="שם הלקוח" required error={errors.get("clientName")}>
           <Input
             value={value.clientName}
+            invalid={errors.has("clientName")}
             onChange={(e) => set({ clientName: e.target.value })}
             placeholder="למשל: סופר פארם"
           />
         </Field>
-        <Field label="שם מנהל/ת הפרויקט">
+        <Field label="שם מנהל/ת הפרויקט" required error={errors.get("pmName")}>
           <Input
             value={value.pmName}
+            invalid={errors.has("pmName")}
             onChange={(e) => set({ pmName: e.target.value })}
             placeholder="מי מוביל את האפיון?"
           />
@@ -46,7 +64,10 @@ export default function AdminSection({ value, onChange, invalid, delay }) {
 
       <div className="mt-4">
         <div className="mb-1.5 flex items-baseline gap-2 text-[13px] font-semibold text-stone-600 dark:text-stone-300">
-          אנשי קשר
+          <span>
+            אנשי קשר
+            <span className="text-red-500"> *</span>
+          </span>
           <span className="font-normal text-stone-400 dark:text-stone-500">
             שם — חובה · אימייל או טלפון — לפחות אחד
           </span>
@@ -70,13 +91,8 @@ export default function AdminSection({ value, onChange, invalid, delay }) {
             </thead>
             <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
               {value.contacts.map((contact) => {
-                const dirty = hasContactContent(contact);
-                const nameMissing = invalid && dirty && !contact.name.trim();
-                const reachMissing =
-                  invalid &&
-                  dirty &&
-                  !contact.email.trim() &&
-                  !contact.phone.trim();
+                const nameMissing = errors.has(`contactName#${contact.id}`);
+                const reachMissing = errors.has(`contactReach#${contact.id}`);
                 return (
                   <tr
                     key={contact.id}
@@ -89,6 +105,8 @@ export default function AdminSection({ value, onChange, invalid, delay }) {
                           setContact(contact.id, { name: e.target.value })
                         }
                         placeholder="ישראל ישראלי"
+                        aria-invalid={nameMissing}
+                        title={errors.get(`contactName#${contact.id}`)}
                         className={`cell-input font-medium ${nameMissing ? invalidCell : ""}`}
                       />
                     </td>
@@ -101,6 +119,8 @@ export default function AdminSection({ value, onChange, invalid, delay }) {
                           setContact(contact.id, { email: e.target.value })
                         }
                         placeholder="israel@client.co.il"
+                        aria-invalid={reachMissing}
+                        title={errors.get(`contactReach#${contact.id}`)}
                         className={`cell-input text-left font-mono !text-[12.5px] ${reachMissing ? invalidCell : ""}`}
                       />
                     </td>
@@ -112,6 +132,8 @@ export default function AdminSection({ value, onChange, invalid, delay }) {
                           setContact(contact.id, { phone: e.target.value })
                         }
                         placeholder="050-1234567"
+                        aria-invalid={reachMissing}
+                        title={errors.get(`contactReach#${contact.id}`)}
                         className={`cell-input text-left font-mono !text-[12.5px] ${reachMissing ? invalidCell : ""}`}
                       />
                     </td>
@@ -139,12 +161,16 @@ export default function AdminSection({ value, onChange, invalid, delay }) {
                   </tr>
                 );
               })}
+              <GhostAddRow colSpan={5} label="הוסף איש קשר" onAdd={addContact} />
             </tbody>
           </table>
         </div>
-        <GhostButton icon={Plus} onClick={addContact} className="mt-2.5">
-          הוסף איש קשר
-        </GhostButton>
+        {errors.get("contacts") && (
+          <p className="mt-1.5 flex items-center gap-1.5 text-[12px] font-semibold text-red-600 dark:text-red-400">
+            <CircleAlert className="size-3.5 shrink-0" />
+            {errors.get("contacts")}
+          </p>
+        )}
       </div>
 
       <div className="mt-4 border-t border-stone-100 pt-4 dark:border-stone-800">
@@ -154,16 +180,98 @@ export default function AdminSection({ value, onChange, invalid, delay }) {
           label="הוקמה מחלקה במערכת?"
         />
         {value.departmentCreated && (
-          <div className="animate-pop mt-3.5 sm:w-1/2">
-            <Field label="מזהה המחלקה (Department ID)">
-              <Input
-                dir="ltr"
-                value={value.departmentId}
-                onChange={(e) => set({ departmentId: e.target.value })}
-                placeholder="12345"
-                className="text-left font-mono !text-[13.5px]"
-              />
-            </Field>
+          <div className="animate-pop mt-3.5">
+            <div className="mb-1.5 flex items-baseline gap-2 text-[13px] font-semibold text-stone-600 dark:text-stone-300">
+              פרטי מחלקות
+              <span className="font-normal text-stone-400 dark:text-stone-500">
+                ניתן להוסיף מספר מחלקות
+              </span>
+            </div>
+            <div className="overflow-x-auto rounded-xl border border-stone-200 dark:border-stone-800">
+              <table className="w-full min-w-[680px] text-[13.5px]">
+                <thead>
+                  <tr className="border-b border-stone-200 bg-stone-50 text-[12px] font-semibold text-stone-500 dark:border-stone-800 dark:bg-stone-800/50 dark:text-stone-400">
+                    <th className="w-[30%] px-3 py-2.5 text-start font-semibold">
+                      שם המחלקה <span className="text-red-500">*</span>
+                    </th>
+                    <th className="w-[22%] px-3 py-2.5 text-start font-semibold">
+                      מזהה קצר
+                    </th>
+                    <th className="px-3 py-2.5 text-start font-semibold">
+                      מזהה מחלקה (UUID)
+                    </th>
+                    <th className="w-10" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
+                  {value.departments.map((department) => (
+                    <tr
+                      key={department.id}
+                      className="group/row transition-colors hover:bg-stone-50/60 dark:hover:bg-stone-800/30"
+                    >
+                      <td>
+                        <input
+                          value={department.name}
+                          onChange={(e) =>
+                            setDepartment(department.id, {
+                              name: e.target.value,
+                            })
+                          }
+                          placeholder="שירות לקוחות"
+                          aria-invalid={errors.has(`departmentName#${department.id}`)}
+                          title={errors.get(`departmentName#${department.id}`)}
+                          className={`cell-input font-medium ${
+                            errors.has(`departmentName#${department.id}`) ? invalidCell : ""
+                          }`}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          dir="ltr"
+                          value={department.shortId}
+                          onChange={(e) =>
+                            setDepartment(department.id, {
+                              shortId: e.target.value,
+                            })
+                          }
+                          placeholder="12345"
+                          className="cell-input text-left font-mono !text-[12.5px]"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          dir="ltr"
+                          value={department.uuid}
+                          onChange={(e) =>
+                            setDepartment(department.id, {
+                              uuid: e.target.value,
+                            })
+                          }
+                          placeholder="550e8400-e29b-41d4-a716-446655440000"
+                          className="cell-input text-left font-mono !text-[12px]"
+                        />
+                      </td>
+                      <td className="text-center">
+                        {value.departments.length > 1 && (
+                          <DeleteButton
+                            aria-label="מחיקת מחלקה"
+                            onClick={() => removeDepartment(department.id)}
+                            className="opacity-0 focus-visible:opacity-100 group-hover/row:opacity-100"
+                          >
+                            <Trash2 className="size-3.5" />
+                          </DeleteButton>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                  <GhostAddRow
+                    colSpan={4}
+                    label="הוסף מחלקה"
+                    onAdd={addDepartment}
+                  />
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>

@@ -1,8 +1,8 @@
-import { Plus, Trash2 } from 'lucide-react'
-import { GhostButton, DeleteButton } from './ui.jsx'
+import { Trash2, CircleAlert } from 'lucide-react'
+import { DeleteButton, GhostAddRow } from './ui.jsx'
 import { makeTestRow } from '../lib.js'
 
-export default function TestDataBlock({ block, onUpdate }) {
+export default function TestDataBlock({ block, errors = new Map(), onUpdate }) {
   const setRow = (id, patch) =>
     onUpdate({ rows: block.rows.map((row) => (row.id === id ? { ...row, ...patch } : row)) })
   const removeRow = (id) => onUpdate({ rows: block.rows.filter((row) => row.id !== id) })
@@ -10,12 +10,17 @@ export default function TestDataBlock({ block, onUpdate }) {
 
   return (
     <div>
-      <div className="overflow-hidden rounded-xl border border-stone-200 dark:border-stone-800">
-        <table className="w-full text-[13.5px]">
+      <div className="overflow-x-auto rounded-xl border border-stone-200 dark:border-stone-800">
+        <table className="w-full min-w-[560px] text-[13.5px]">
           <thead>
             <tr className="border-b border-stone-200 bg-stone-50 text-[12px] font-semibold text-stone-500 dark:border-stone-800 dark:bg-stone-800/50 dark:text-stone-400">
-              <th className="w-[38%] px-3 py-2.5 text-start font-semibold">שדה</th>
-              <th className="px-3 py-2.5 text-start font-semibold">ערך לבדיקה</th>
+              <th className="w-[30%] px-3 py-2.5 text-start font-semibold">
+                שדה <span className="text-red-500">*</span>
+              </th>
+              <th className="w-[32%] px-3 py-2.5 text-start font-semibold">
+                ערך לבדיקה <span className="text-red-500">*</span>
+              </th>
+              <th className="px-3 py-2.5 text-start font-semibold">הערות</th>
               <th className="w-10" />
             </tr>
           </thead>
@@ -39,6 +44,14 @@ export default function TestDataBlock({ block, onUpdate }) {
                     className="cell-input font-mono !text-[12.5px]"
                   />
                 </td>
+                <td>
+                  <input
+                    value={row.notes ?? ''}
+                    onChange={(e) => setRow(row.id, { notes: e.target.value })}
+                    placeholder="הערות לבדיקה..."
+                    className="cell-input"
+                  />
+                </td>
                 <td className="text-center">
                   <DeleteButton
                     aria-label="מחיקת שורה"
@@ -50,12 +63,16 @@ export default function TestDataBlock({ block, onUpdate }) {
                 </td>
               </tr>
             ))}
+            <GhostAddRow colSpan={4} onAdd={addRow} />
           </tbody>
         </table>
       </div>
-      <GhostButton icon={Plus} onClick={addRow} className="mt-2.5">
-        הוסף שורה
-      </GhostButton>
+      {errors.get('rows') && (
+        <p className="mt-1.5 flex items-center gap-1.5 text-[12px] font-semibold text-red-600 dark:text-red-400">
+          <CircleAlert className="size-3.5 shrink-0" />
+          {errors.get('rows')}
+        </p>
+      )}
     </div>
   )
 }

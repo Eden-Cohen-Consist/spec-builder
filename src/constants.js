@@ -5,8 +5,6 @@ export const INTERNAL_SYSTEMS = ['glassix', 'consist']
 
 export const FIELD_TYPES = ['String', 'Int', 'Boolean', 'Object', 'Array']
 
-export const AUTH_TYPES = ['None', 'Bearer Token', 'API Key', 'OAuth']
-
 export const HTTP_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']
 
 export const BLOCK_META = {
@@ -28,7 +26,7 @@ export const BLOCK_META = {
   },
   testData: {
     title: 'נתוני בדיקה',
-    subtitle: 'ערכי דמה למפתחים לצורך דיבוג',
+    subtitle: 'ערכים לדוגמא לצורך תרחישים אפשריים',
     icon: FlaskConical,
     accent: '#b45309',
     accentDark: '#fbbf24',
