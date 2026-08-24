@@ -45,7 +45,7 @@ export default function WorkflowHeader({ workflow }) {
 
       <Field label="תיאור קצר" hint="לא חובה">
         <Textarea
-          rows={2}
+          rows={3}
           value={workflow.description}
           onChange={(e) => set({ description: e.target.value })}
           placeholder="מה התהליך הזה עושה, במשפט אחד"
