@@ -15,6 +15,7 @@ import AppFooter from "./components/app/AppFooter.jsx";
 import BlockBody from "./components/app/BlockBody.jsx";
 import { makeBlock, compileSpec } from "./lib.js";
 import { useWorkflows } from "./workflow/useWorkflows.js";
+import { useWorkflowHttpBlocks } from "./workflow/useWorkflowHttpBlocks.js";
 import { migrateWorkflows } from "./workflow/migrate.js";
 import { validateSpec, fieldErrors } from "./validation/index.js";
 import { countIssues } from "./validation/issue.js";
@@ -35,6 +36,11 @@ export default function App() {
   const [business, setBusiness] = useState(getInitialBusiness);
   const wf = useWorkflows(() => migrateWorkflows(draft));
   const [blocks, setBlocks] = useState(getInitialBlocks);
+  const { workflowApi, updateBlock } = useWorkflowHttpBlocks(
+    wf,
+    blocks,
+    setBlocks,
+  );
   const [wizardStep, setWizardStep] = useState(initialWizard.step);
   const [wizardMaxReached, setWizardMaxReached] = useState(
     initialWizard.maxReached,
@@ -110,9 +116,6 @@ export default function App() {
   };
 
   const addBlock = (type) => setBlocks((prev) => [...prev, makeBlock(type)]);
-
-  const updateBlock = (id, patch) =>
-    setBlocks((prev) => prev.map((b) => (b.id === id ? { ...b, ...patch } : b)));
 
   const deleteBlock = (id) =>
     setBlocks((prev) => prev.filter((b) => b.id !== id));
@@ -259,7 +262,7 @@ export default function App() {
         {wizardStep === 2 && (
           <div className="pt-8">
             <WorkflowSection
-              api={wf}
+              api={workflowApi}
               blocks={blocks}
               dark={dark}
               submitted={attempted[2]}
