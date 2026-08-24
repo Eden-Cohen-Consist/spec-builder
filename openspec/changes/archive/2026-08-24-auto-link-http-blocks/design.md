@@ -48,13 +48,18 @@ Alternative considered: synchronize whenever the old node and block titles happe
 
 The marker is retained in local draft data and omitted automatically by the explicit compiled-output mapping. Existing drafts need no migration because absence of the optional marker means ordinary, manually managed behavior. The existing HTTP migration's object spread must continue preserving unknown fields.
 
-### Create only when the choice is unambiguous
+### Auto-link via reusable default slots
 
 The decorated `addNode` delegates graph creation and positioning to the existing `useWorkflows.addNode`.
 
 - If the new type is not `HTTP_REQUEST`, behavior is unchanged.
-- If it is `HTTP_REQUEST` and no HTTP block exists, the adapter creates a `makeBlock('http')` object outside state updater functions, sets its title and `autoLinkedNodeId`, appends it, and updates the node's `config.blockId`.
-- If an HTTP block already exists, no block is created. The already-selected node opens in the existing side panel, where the PM chooses an existing block or **יצירת בלוק חדש**.
+- If it is `HTTP_REQUEST`, the adapter looks for a **reusable default slot**: an HTTP block whose title is the default **קריאת API**, is otherwise empty per `isBlockEmpty` with the title ignored, and is not linked from any workflow node.
+- When a reusable slot exists, the adapter links the new node to that block and sets `autoLinkedNodeId` on the block so title synchronization applies.
+- When no reusable slot exists, the adapter creates a `makeBlock('http')` object outside state updater functions, sets the default title and `autoLinkedNodeId`, appends it, and updates the node's `config.blockId`.
+
+This keeps a zero-click flow for typical PM behavior: most new **קריאת API** nodes arrive already linked without opening the picker, while avoiding duplicate empty default blocks when an orphan slot already exists.
+
+The side panel remains for manual override: choosing a different existing block or **יצירת בלוק חדש** when the PM wants an explicit new integration contract.
 
 Creating objects outside React state updater functions preserves stable ids under Strict Mode double invocation.
 

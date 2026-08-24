@@ -4,31 +4,40 @@ Lets a Hebrew, non-developer PM create and connect an HTTP workflow step to its 
 
 ## ADDED Requirements
 
-### Requirement: The first HTTP node creates and links its technical block
-When the PM adds a **קריאת API** node and no HTTP Request technical block exists, the system SHALL immediately create an HTTP Request block, set its title to the node title, and link the node to that block.
+### Requirement: HTTP nodes auto-link via reusable default slots
+When the PM adds a **קריאת API** node, the system SHALL immediately link it to a technical HTTP Request block. The system SHALL reuse an existing empty, unlinked HTTP Request block titled **קריאת API** when one exists; otherwise it SHALL create one with that default title and link the node to it.
 
 #### Scenario: Add the first HTTP node
 - **WHEN** the PM adds a **קריאת API** node while the document has no HTTP Request blocks
-- **THEN** one HTTP Request block is created with the same title as the node
+- **THEN** one HTTP Request block is created with the title **קריאת API**
 - **AND** the node is linked to the created block
 - **AND** the PM remains on the workflow step with the node side panel open
 
+#### Scenario: Reuse an empty default slot
+- **WHEN** the PM adds a **קריאת API** node
+- **AND** an HTTP Request block titled **קריאת API** exists with no HTTP details beyond its title and defaults
+- **AND** no workflow node currently links to that block
+- **THEN** the node links to that existing block
+- **AND** no duplicate HTTP Request block is created
+
+#### Scenario: Create a new default block when no slot exists
+- **WHEN** the PM adds a **קריאת API** node
+- **AND** every existing HTTP Request block is either linked, populated, or not titled **קריאת API**
+- **THEN** the system creates one HTTP Request block titled **קריאת API**
+- **AND** links the node to the created block
+
 #### Scenario: Created block appears on the technical-block step
-- **WHEN** the PM advances from the workflow step after the system created a linked HTTP Request block
-- **THEN** the created block appears in **בלוקים טכניים** ready for its HTTP details to be completed
+- **WHEN** the PM advances from the workflow step after the system linked an HTTP Request block
+- **THEN** the linked block appears in **בלוקים טכניים** ready for its HTTP details to be completed
 
-### Requirement: Existing HTTP blocks are chosen from the node side panel
-When at least one HTTP Request block already exists, adding a **קריאת API** node SHALL open its side panel without creating another block. The side panel SHALL let the PM link an existing HTTP Request block or create and link a new one.
+### Requirement: The side panel supports manual block selection
+The HTTP node side panel SHALL let the PM link a different existing HTTP Request block or explicitly create and link a new one.
 
-#### Scenario: Add an HTTP node when blocks already exist
-- **WHEN** the PM adds a **קריאת API** node while one or more HTTP Request blocks exist
-- **THEN** the node side panel shows the existing HTTP Request blocks and a **יצירת בלוק חדש** action
-- **AND** no additional HTTP Request block is created until the PM chooses that action
-
-#### Scenario: Link an existing block
-- **WHEN** the PM chooses an existing HTTP Request block in the node side panel
+#### Scenario: Link a different existing block
+- **WHEN** the PM chooses a different existing HTTP Request block in the node side panel
 - **THEN** the node links to that block
 - **AND** no new block is created
+- **AND** the previously linked block is not deleted
 
 #### Scenario: Create a new block from the side panel
 - **WHEN** the PM chooses **יצירת בלוק חדש** in the node side panel
@@ -42,10 +51,10 @@ When at least one HTTP Request block already exists, adding a **קריאת API**
 - **AND** the previously linked block is not deleted
 
 ### Requirement: A new block title follows its node title until independently edited
-The system SHALL keep the title of a newly created linked HTTP Request block equal to its originating node title while their titles still match. Once the PM gives the block a different title in **בלוקים טכניים**, later node-title edits MUST NOT overwrite the block title.
+The system SHALL keep the title of a newly created or auto-linked HTTP Request block equal to its originating node title while their titles still match. Once the PM gives the block a different title in **בלוקים טכניים**, later node-title edits MUST NOT overwrite the block title.
 
 #### Scenario: Rename a node before editing its block title
-- **WHEN** a node and its newly created linked block have matching titles
+- **WHEN** a node and its auto-linked block have matching titles
 - **AND** the PM changes the node title
 - **THEN** the linked block title changes to the same value
 
@@ -54,8 +63,8 @@ The system SHALL keep the title of a newly created linked HTTP Request block equ
 - **AND** the PM later changes the node title
 - **THEN** the linked block title remains unchanged
 
-#### Scenario: Existing blocks are not renamed on selection
-- **WHEN** the PM links an HTTP node to an existing HTTP Request block
+#### Scenario: Existing blocks are not renamed on manual selection
+- **WHEN** the PM links an HTTP node to a different existing HTTP Request block through the side panel
 - **THEN** the existing block title remains unchanged
 
 ### Requirement: Node deletion safely cleans up an unused empty block
@@ -83,7 +92,7 @@ Deleting an HTTP node SHALL delete its linked HTTP Request block only when no ot
 The system SHALL persist the resulting nodes, links, blocks, and automatic-title ownership across reloads. Drafts saved before this capability MUST continue to load without migration work by the PM. Compiled JSON MUST continue to omit internal ids and UI-only metadata and represent an HTTP workflow step's `integrationBlock` using the matching exported technical-block name.
 
 #### Scenario: Reload an automatically linked draft
-- **WHEN** the PM reloads a draft containing an automatically created linked block
+- **WHEN** the PM reloads a draft containing an automatically linked block
 - **THEN** its node-to-block link and automatic-title behavior are preserved
 
 #### Scenario: Load an older draft
@@ -91,7 +100,7 @@ The system SHALL persist the resulting nodes, links, blocks, and automatic-title
 - **THEN** its existing workflow nodes and technical blocks load without data loss
 
 #### Scenario: Export a newly linked HTTP node
-- **WHEN** the PM exports a document containing an automatically created and linked HTTP Request block
+- **WHEN** the PM exports a document containing an automatically linked HTTP Request block
 - **THEN** the workflow step's `integrationBlock` equals that block's exported `name`
 - **AND** the block appears once in `technicalBlocks`
 - **AND** no internal id is present in the compiled JSON

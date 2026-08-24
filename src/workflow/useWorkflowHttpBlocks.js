@@ -5,6 +5,20 @@ import { NODE_META } from './constants.js'
 
 const httpBlocksOf = (blocks) => blocks.filter((b) => b.type === 'http')
 
+const defaultHttpTitle = () => NODE_META.HTTP_REQUEST.label
+
+const isDefaultTitled = (block) => block.title?.trim() === defaultHttpTitle()
+
+const isEmptyHttpBlock = (block) => isBlockEmpty({ ...block, title: '' })
+
+const findReusableSlot = (workflows, blocks) =>
+  httpBlocksOf(blocks).find(
+    (block) =>
+      isDefaultTitled(block) &&
+      isEmptyHttpBlock(block) &&
+      countBlockRefs(workflows, block.id) === 0,
+  ) ?? null
+
 const findNode = (workflows, workflowId, nodeId) => {
   const workflow = workflows.find((w) => w.id === workflowId)
   return workflow?.nodes.find((n) => n.id === nodeId) ?? null
@@ -43,6 +57,20 @@ export function useWorkflowHttpBlocks(wf, blocks, setBlocks) {
     [setBlocks],
   )
 
+  const linkNodeToBlock = useCallback(
+    (workflowId, nodeId, blockId, { claimOwnership = true } = {}) => {
+      if (claimOwnership) {
+        setBlocks((prev) =>
+          prev.map((b) => (b.id === blockId ? { ...b, autoLinkedNodeId: nodeId } : b)),
+        )
+      }
+      wf.updateNode(workflowId, nodeId, {
+        config: { blockId, notes: '' },
+      })
+    },
+    [wf, setBlocks],
+  )
+
   const createHttpBlockForNode = useCallback(
     (workflowId, nodeId) => {
       const node = findNode(wf.workflows, workflowId, nodeId)
@@ -77,17 +105,23 @@ export function useWorkflowHttpBlocks(wf, blocks, setBlocks) {
     (workflowId, type, options) => {
       const nodeId = wf.addNode(workflowId, type, options)
       if (!nodeId || type !== 'HTTP_REQUEST') return nodeId
-      if (httpBlocksOf(blocks).length > 0) return nodeId
 
-      const title = NODE_META.HTTP_REQUEST.label
-      const block = { ...makeBlock('http'), title, autoLinkedNodeId: nodeId }
+      const slot = findReusableSlot(wf.workflows, blocks)
+      if (slot) {
+        linkNodeToBlock(workflowId, nodeId, slot.id)
+        return nodeId
+      }
+
+      const block = {
+        ...makeBlock('http'),
+        title: defaultHttpTitle(),
+        autoLinkedNodeId: nodeId,
+      }
       setBlocks((prev) => [...prev, block])
-      wf.updateNode(workflowId, nodeId, {
-        config: { blockId: block.id, notes: '' },
-      })
+      linkNodeToBlock(workflowId, nodeId, block.id, { claimOwnership: false })
       return nodeId
     },
-    [wf, blocks, setBlocks],
+    [wf, blocks, setBlocks, linkNodeToBlock],
   )
 
   const updateNode = useCallback(
