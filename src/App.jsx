@@ -219,7 +219,7 @@ export default function App() {
         dark={dark}
       />
 
-      <main className="mx-auto max-w-3xl px-5">
+      <main className="form-shell">
         {wizardStep === 1 && (
           <>
             <div className="animate-rise pb-8 pt-10">

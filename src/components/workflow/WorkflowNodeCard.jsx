@@ -18,7 +18,7 @@ const handleClass = '!size-2 !border-0 !bg-stone-400 dark:!bg-stone-600'
  * handles (top in, bottom out) keep the graph direction unambiguous under RTL.
  */
 function WorkflowNodeCard({ id, data, selected }) {
-  const { node, hasError, hasWarning, sourceHandleCount } = data
+  const { node, hasError, hasWarning, httpUnlinked, sourceHandleCount } = data
   const meta = NODE_META[node.type] ?? FALLBACK_META
   const Icon = meta.icon
 
@@ -50,8 +50,13 @@ function WorkflowNodeCard({ id, data, selected }) {
       <div
         dir="rtl"
         aria-label={`${meta.label}: ${node.title || 'ללא כותרת'}`}
-        className={`w-[240px] rounded-xl border bg-white p-3 shadow-[0_1px_2px_rgba(28,25,23,0.03)] transition-colors duration-150 dark:bg-stone-800 dark:shadow-none ${ring}`}
+        className={`relative w-[240px] rounded-xl border bg-white p-3 shadow-[0_1px_2px_rgba(28,25,23,0.03)] transition-colors duration-150 dark:bg-stone-800 dark:shadow-none ${ring}`}
       >
+        {httpUnlinked && (
+          <span className="absolute left-2 top-2 z-10 rounded bg-red-500/10 px-1 py-px text-[9px] font-bold leading-none text-red-600 dark:text-red-400">
+            ללא בלוק
+          </span>
+        )}
         <div className="flex items-center gap-2.5">
           <span
             className="flex size-8 shrink-0 items-center justify-center rounded-lg text-(--accent) dark:text-(--accent-dark)"

@@ -8,7 +8,7 @@ export default function AppHeader({
 }) {
   return (
     <header className="sticky top-0 z-40 border-b border-stone-200/70 bg-paper/85 backdrop-blur-md dark:border-stone-800/80">
-      <div className="mx-auto flex max-w-3xl items-center justify-between px-5 py-3">
+      <div className="form-shell flex items-center justify-between py-3">
         <div className="flex items-center gap-3">
           <span className="flex size-8 items-center justify-center rounded-lg bg-teal-700 font-display text-[15px] font-black text-white shadow-sm shadow-teal-700/30">
             א

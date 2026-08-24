@@ -58,6 +58,11 @@ export const migrateBlocks = (blocks) => {
           (h) => h.key?.trim() || h.value?.trim(),
         );
       }
+      if (!("mappingEnabled" in block)) {
+        httpBlock.mappingEnabled = httpBlock.mapping.some(
+          (row) => row.sourceField?.trim() || row.targetField?.trim() || row.notes?.trim(),
+        );
+      }
       for (const security of pending.splice(0))
         foldSecurityIntoHttp(httpBlock, security);
       migrated.push(httpBlock);
