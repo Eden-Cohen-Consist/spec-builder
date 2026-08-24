@@ -106,7 +106,9 @@ export default function WorkflowNodePanel({ workflow, node, blocks, onClose }) {
           <HttpRequestNodePanel
             node={node}
             blocks={blocks}
+            workflow={workflow}
             onConfig={onConfig}
+            onCreateBlock={api.createHttpBlockForNode}
           />
         )}
       </div>

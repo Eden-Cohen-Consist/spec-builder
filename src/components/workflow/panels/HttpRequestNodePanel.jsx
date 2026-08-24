@@ -1,4 +1,5 @@
-import { Field, Select, Textarea } from '../../ui.jsx'
+import { Plus } from 'lucide-react'
+import { Field, GhostButton, Select, Textarea } from '../../ui.jsx'
 
 const blockLabel = (block) => {
   const route = [block.source, block.destination].filter((part) => part?.trim()).join(' ← ')
@@ -11,27 +12,35 @@ const blockLabel = (block) => {
  * Links to an existing HTTP block instead of duplicating its fields — the full request
  * stays defined once, in the "בלוקים טכניים" section.
  */
-export default function HttpRequestNodePanel({ node, blocks, onConfig }) {
+export default function HttpRequestNodePanel({ node, blocks, workflow, onConfig, onCreateBlock }) {
   const config = node.config ?? {}
   const httpBlocks = blocks.filter((block) => block.type === 'http')
   const missing = config.blockId && !httpBlocks.some((block) => block.id === config.blockId)
+  const showBlockPicker = httpBlocks.length > 0 || config.blockId
 
   return (
     <div className="space-y-4">
       <Field label="בלוק האינטגרציה" hint="מסעיף הבלוקים הטכניים">
-        {httpBlocks.length === 0 ? (
+        {!showBlockPicker ? (
           <p className="rounded-xl border border-dashed border-stone-200 px-3 py-2.5 text-[13px] text-stone-400 dark:border-stone-700 dark:text-stone-500">
             עדיין לא הוגדרו בלוקי אינטגרציה — הוסיפו בלוק &quot;HTTP Request&quot; בהמשך העמוד
           </p>
         ) : (
-          <Select value={config.blockId ?? ''} onChange={(e) => onConfig({ blockId: e.target.value })}>
-            <option value="">ללא בלוק מוצמד</option>
-            {httpBlocks.map((block) => (
-              <option key={block.id} value={block.id}>
-                {blockLabel(block)}
-              </option>
-            ))}
-          </Select>
+          <div className="space-y-2.5">
+            <Select value={config.blockId ?? ''} onChange={(e) => onConfig({ blockId: e.target.value })}>
+              <option value="">ללא בלוק מוצמד</option>
+              {httpBlocks.map((block) => (
+                <option key={block.id} value={block.id}>
+                  {blockLabel(block)}
+                </option>
+              ))}
+            </Select>
+            {httpBlocks.length > 0 && (
+              <GhostButton icon={Plus} onClick={() => onCreateBlock(workflow.id, node.id)}>
+                יצירת בלוק חדש
+              </GhostButton>
+            )}
+          </div>
         )}
       </Field>
 

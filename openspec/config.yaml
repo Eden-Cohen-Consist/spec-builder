@@ -1,0 +1,162 @@
+schema: spec-driven
+
+# Injected into every OpenSpec artifact instruction. Keep this current; it is the
+# project brief for the next agent. Do not paste this block into proposal/spec/design/tasks.
+context: |
+  Product: "בונה אפיונים" (Glassix Spec Builder). Hebrew/RTL SPA for a PM (non-developer)
+  to assemble a technical integration spec. No backend, no API, no DB. One outcome:
+  compile UI state to JSON, wrap it with src/prompts/ai-review.md, copy that text into
+  an external LLM chat. The LLM produces the final Markdown spec. schemaVersion of the
+  compiled JSON is currently 4.
+
+  Stack: plain JavaScript React (.jsx) + Vite 8 + Tailwind CSS v4 (@tailwindcss/vite;
+  tokens live in src/index.css @theme — there is no tailwind.config.js) + @xyflow/react
+  (React Flow) + lucide-react + marked. Types are JSDoc @typedef next to factories
+  (see src/workflow/model.js). @types/react exists only for editor checking; there is
+  no tsconfig.json. Linter is oxlint only. If a change needs a library, tool,
+  tests, or TypeScript, propose it and wait for approval — then use it. Do not
+  skip a needed dependency and ship a worse homemade substitute. Verify with
+  npm run lint, npm run build, and a real browser pass.
+
+  Layout of the page (src/App.jsx owns most state via useState):
+    AdminSection → BusinessSection → WorkflowSection
+    then a free-form list of technical blocks.
+  The first three are locked, numbered, non-removable (LockedSection). Blocks are
+  added/removed via AddBlockPopover and rendered in DynamicBlock, except http which
+  uses HttpBlockCard. Shared form primitives live in src/components/ui.jsx
+  (Field, Input, Textarea, Select, Checkbox, GhostButton, GhostAddRow, DeleteButton)
+  for ordinary fields. Non-trivial UI or other well-solved problems should use a
+  maintained library (ask before installing).
+
+  Technical block types (src/constants.js BLOCK_META + src/lib.js makeBlock):
+    http, freeText, testData, table.
+  INTERNAL_SYSTEMS = glassix, consist; anything else is 3rd-party (payloads required).
+  HttpBlock is split: src/components/HttpBlock.jsx plus src/components/http/
+  (CurlImport, PayloadEditor, HeadersEditor, MappingTable, SecurityFields).
+  iframe-block-demo.html is a standalone visual prototype for a possible iframe block.
+  It is NOT wired into BLOCK_META, makeBlock, or the app. Do not treat it as shipped.
+
+  Workflows (src/workflow/): multiple independent graphs, not a linear list.
+    model.js     — Workflow / WorkflowNode / WorkflowEdge factories. makeWorkflow()
+                   seeds START→END when no nodes given.
+    constants.js — NODE_META / WORKFLOW_NODE_TYPES is the single source of truth.
+                   Current types: START, ACTION, DECISION, HTTP_REQUEST, END.
+                   Palette ADDABLE (WorkflowNodePalette.jsx) is ACTION, DECISION,
+                   HTTP_REQUEST, END. Keep palette, NODE_META, and every switch on
+                   node.type in sync when adding a type.
+    useWorkflows.js — the one owner of workflows / activeWorkflowId / selectedNodeId
+                   and all mutators. Instantiated in App.jsx, provided via
+                   WorkflowsContext (WorkflowSection.jsx). Call useWorkflowsApi()
+                   from workflow UI. Mutators return { ok: true } | { ok: false, error }.
+    validation.js — structural graph checks (name/trigger, START/END, dead ends,
+                   orphans unless config.draft, DECISION ≥2 labeled routes,
+                   HTTP_REQUEST should reference a block).
+    migrate.js    — load-time only; never mutates in place. Unknown node types are
+                   kept and flagged, never silently dropped.
+    rfAdapter.js  — pure model ↔ React Flow reshape. No domain logic here.
+  Canvas rules that bite:
+    - WorkflowCanvas MERGES incoming node data into existing RF nodes
+      (setRfNodes(current => …)); wholesale replace wipes measured dimensions
+      and breaks edges.
+    - WorkflowNodeCard must call useUpdateNodeInternals() keyed on handle count
+      (DECISION routes re-space handles without resizing the 240px card). Any
+      future type with a dynamic handle count needs the same.
+    - Palette dropdown is createPortal(document.body) because the canvas clips
+      overflow. React Flow is LTR-internal; sourceHandle / positions need RTL care.
+    - A hidden browser pane cannot measure the canvas; nodes stay visibility:hidden
+      and edges vanish. That is the pane, not a graph bug.
+
+  Form + workflow validation (already shipped, 2026-07-29 design):
+    src/validation/ (issue.js, rules.js, index.js) produces a flat Issue[] for
+    admin/business/blocks. App concatenates wf.issues. error blocks generate;
+    warning does not. generate() opens ValidationModal if any issues exist;
+    a clean form goes straight to ExportModal. generateAnyway() exports over
+    remaining issues. `submitted` stays false until the first generate press —
+    asterisks show from the start; chips/rings/inline errors appear only after
+    that press, then update live. Untouched blocks: one EMPTY_BLOCK warning,
+    no errors. Do not invent a second validation path.
+
+  Export (src/lib.js compileSpec):
+    Output keys: meta, administrative, businessNeed, workflows, technicalBlocks.
+    Drops UI-only fields (canvas position, dangling edges) and ALL uuids.
+    Cross-refs are PM wording via uniqueRef (suffix " (2)" on collisions).
+    Each workflow becomes a steps[] (BFS from START); routes are inline
+    next: [{ to, when, condition }] where `to` is the target step name.
+    Unreachable nodes are kept with unreachableFromStart: true.
+    HTTP_REQUEST.config.blockId exports as integrationBlock = technicalBlocks[].name
+    (null if unlinked). buildAiExportText() concatenates JSON + ai-review.md (?raw).
+    If the workflows JSON shape changes, update ai-review.md §3/§4 to match.
+    Also: parseCurl, markdownToWordHtml (MarkdownToWordModal — "המרת אפיון AI ל-Word").
+
+  Persistence: localStorage key glassix-spec-builder:draft:v1
+    { admin, business, workflows, blocks, flow? }, 600ms debounce in App.jsx.
+    Theme: glassix-spec-builder:theme. Dark mode = .dark on <html>.
+    Load-time migrations: migrateAdmin (free-text contacts → rows),
+    migrateBusiness (legacy trigger dropped; workflows own triggers),
+    migrateBlocks (standalone security blocks folded into nearest http).
+    Legacy `flow` (pre-graph linear format) is round-tripped verbatim so a
+    rollback never loses data. Pattern: sanitize on load, never destructively
+    drop unrecognized data, keep old keys when cheap.
+
+  UI constraints: dir="rtl" throughout; user-facing copy is Hebrew. Prefer
+  logical CSS (start/end, ps/pe, ms/me). Dark counterparts for every colour.
+  Workflow-canvas dark tokens are scoped under .wf-canvas .react-flow in
+  index.css — do not restyle React Flow globally. Tailwind equal-specificity
+  utilities resolve by generated stylesheet order, not class-string order;
+  do not layer border-red-* on top of border-stone-* and expect it to win.
+
+  OpenSpec state: this repo has no openspec/specs and no openspec/changes yet.
+  CLAUDE.md is the architecture source of truth. HANDOFF.md (2026-07-28) is
+  historical: DECISION handle-bounds fix is in WorkflowNodeCard; HttpBlock
+  split is now in tree. The required-fields validation plan under
+  docs/superpowers/ is implemented, not pending.
+
+rules:
+  proposal:
+    - Always include a Non-goals section.
+    - Name the user (PM, Hebrew, non-developer) and the single export path
+      (JSON + ai-review.md → external LLM).
+  specs:
+    - Specs describe observable PM-facing behaviour in Hebrew UI terms, plus
+      the compiled JSON contract when export is in scope.
+    - Do not require ids in the exported JSON. Names (uniqueRef) are the only
+      cross-references between workflows.steps and technicalBlocks.
+    - When adding a workflow node type, the spec must cover NODE_META, palette
+      ADDABLE, panel switch, validation, rfAdapter handles, and compileSpec
+      flattening — those must stay in lockstep.
+    - When adding a technical block type, the spec must cover BLOCK_META,
+      makeBlock, App.jsx renderer, validateBlock / isBlockEmpty, and compileSpec.
+    - Persistence changes must follow sanitize-on-load; never silently drop
+      unrecognized draft fields; keep legacy keys when cheap.
+  design:
+    - >-
+      Prefer extending existing modules (src/validation, src/workflow, src/lib.js)
+      over new abstraction layers. If a library is the right tool, propose it
+      and use it after approval — UI or otherwise.
+    - >-
+      Call out React Flow hazards if the canvas is touched (merge-not-replace
+      nodes, useUpdateNodeInternals on dynamic handles, portal the palette).
+    - RTL + dark mode are not optional polish; they are design constraints.
+    - iframe-block-demo.html is a prototype only until BLOCK_META ships it.
+  tasks:
+    - Chunks small enough to lint + build + one focused browser check.
+    - Every task that changes UI must include a browser verification step
+      (not a screenshot-only check). Hidden browser pane cannot measure the
+      workflow canvas.
+    - Needed libraries/tools are allowed. Ask before adding a dependency;
+      do not hand-roll a worse substitute.
+    - If compileSpec or workflows JSON shape changes, include a task to update
+      src/prompts/ai-review.md §3/§4.
+
+operations:
+  apply:
+    guidance:
+      - If a library, tool, tests, or TypeScript is needed, ask first, then use it.
+        Never skip a needed dependency in favor of a homemade substitute.
+      - Verify with npm run lint, npm run build, and a browser pass of the changed flow.
+      - Keep comments in English; all user-facing strings in Hebrew.
+      - If export JSON shape changes, update src/prompts/ai-review.md in the same change.
+  archive:
+    guidance:
+      - Summarize what shipped vs what was left as a prototype (e.g. iframe demo).
+      - Note any draft-shape / schemaVersion bump so the next agent does not miss it.
