@@ -137,7 +137,6 @@ function HttpBlock({ block, errors = new Map(), onUpdate, curlOpen, onCurlOpenCh
         </Field>
         <Field
           label={<span dir="ltr">Endpoint</span>}
-          hint="כתובת ה-API המלאה"
           required
           error={errors.get("endpoint")}
         >

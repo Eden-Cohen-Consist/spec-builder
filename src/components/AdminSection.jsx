@@ -68,9 +68,7 @@ export default function AdminSection({ value, onChange, issues = [], submitted =
             אנשי קשר
             <span className="text-red-500"> *</span>
           </span>
-          <span className="font-normal text-stone-400 dark:text-stone-500">
-            שם — חובה · אימייל או טלפון — לפחות אחד
-          </span>
+
         </div>
         <div className="overflow-x-auto rounded-xl border border-stone-200 dark:border-stone-800">
           <table className="w-full min-w-[560px] text-[13.5px]">

@@ -35,7 +35,7 @@ export default function WorkflowHeader({ workflow }) {
         </Field>
       </div>
 
-      <Field label="פירוט הטריגר" hint={TRIGGER_HINTS[workflow.triggerType]}>
+      <Field label="פירוט הטריגר" >
         <Input
           value={workflow.triggerDescription}
           onChange={(e) => set({ triggerDescription: e.target.value })}
@@ -43,7 +43,7 @@ export default function WorkflowHeader({ workflow }) {
         />
       </Field>
 
-      <Field label="תיאור קצר" hint="לא חובה">
+      <Field label="תיאור קצר" >
         <Textarea
           rows={2}
           value={workflow.description}
