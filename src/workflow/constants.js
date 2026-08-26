@@ -40,7 +40,7 @@ export const NODE_META = {
     tint: 'rgba(15, 118, 110, 0.08)',
   },
   DECISION: {
-    label: 'החלטה',
+    label: 'תנאי',
     hint: 'פיצול התהליך לכמה מסלולים לפי תנאי',
     icon: GitBranch,
     accent: '#b45309',

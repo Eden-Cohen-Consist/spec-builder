@@ -50,7 +50,7 @@ export default function HttpRequestNodePanel({ node, blocks, workflow, onConfig,
         </p>
       )}
 
-      <Field label="הערות" hint="לא חובה">
+      <Field label="תשובה מצופה" hint="לא חובה">
         <Textarea
           rows={3}
           value={config.notes ?? ''}

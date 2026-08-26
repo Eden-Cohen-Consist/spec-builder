@@ -159,32 +159,34 @@ function HttpBlock({ block, errors = new Map(), onUpdate, curlOpen, onCurlOpenCh
         onEnabledChange={(headersEnabled) => onUpdate({ headersEnabled })}
       />
 
-      {thirdParty && (
-        <div className="animate-block-in mt-5 space-y-4 rounded-xl border border-stone-200 bg-stone-50/60 p-4 dark:border-stone-800 dark:bg-stone-950/40">
+      <div className="mt-5 space-y-4">
+        {thirdParty && (
           <p className="flex items-center gap-1.5 text-[13px] font-semibold text-stone-600 dark:text-stone-300">
             <Globe className="size-3.5 text-amber-600 dark:text-amber-400" />
-            אינטגרציה מול מערכת חיצונית — חובה לצרף את מבני ה-JSON המלאים
+            אינטגרציה מול מערכת חיצונית
           </p>
-          <PayloadEditor
-            label="Request Payload"
-            value={block.requestPayload}
-            onChange={(requestPayload) => onUpdate({ requestPayload })}
-            error={errors.get("requestPayload")}
-          />
-          <PayloadEditor
-            label="Response"
-            value={block.responsePayload}
-            onChange={(responsePayload) => onUpdate({ responsePayload })}
-            error={errors.get("responsePayload")}
-          />
-        </div>
-      )}
+        )}
+        <PayloadEditor
+          label="Request Payload"
+          value={block.requestPayload}
+          onChange={(requestPayload) => onUpdate({ requestPayload })}
+          error={errors.get("requestPayload")}
+        />
+        <PayloadEditor
+          label="Response"
+          value={block.responsePayload}
+          onChange={(responsePayload) => onUpdate({ responsePayload })}
+          error={errors.get("responsePayload")}
+        />
+      </div>
 
       <MappingTable
         mapping={block.mapping}
         source={block.source}
         destination={block.destination}
+        enabled={Boolean(block.mappingEnabled)}
         onChange={(mapping) => onUpdate({ mapping })}
+        onEnabledChange={(mappingEnabled) => onUpdate({ mappingEnabled })}
       />
 
       <SecurityFields block={block} errors={errors} onUpdate={onUpdate} />

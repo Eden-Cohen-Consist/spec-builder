@@ -23,7 +23,7 @@ export default function WizardStepper({ step, maxReached, onSelect, dark }) {
       aria-label="שלבי האפיון"
       className="border-b border-stone-200/70 bg-paper/80 dark:border-stone-800/80"
     >
-      <div className="mx-auto max-w-3xl px-5 py-4">
+      <div className="form-shell py-4">
         <ConfigProvider
           direction="rtl"
           theme={{

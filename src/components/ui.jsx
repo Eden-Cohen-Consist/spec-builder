@@ -22,25 +22,27 @@ export const invalidCell =
 export function Field({ label, afterLabel, hint, required = false, error, className = '', children }) {
   return (
     <label className={`block ${className}`}>
-      <span className="mb-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] font-semibold text-stone-600 dark:text-stone-300">
-        <span className="inline-flex items-center gap-2">
-          {label}
-          {required && (
-            <span className="text-red-500" aria-hidden="true">
-              *
-            </span>
-          )}
-          {afterLabel}
+      <span className="mb-1.5 flex min-h-[1.25rem] items-center justify-between gap-2 text-[13px] font-semibold text-stone-600 dark:text-stone-300">
+        <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="inline-flex items-center gap-2">
+            {label}
+            {required && (
+              <span className="text-red-500" aria-hidden="true">
+                *
+              </span>
+            )}
+            {afterLabel}
+          </span>
+          {hint && <span className="font-normal text-stone-400 dark:text-stone-500">{hint}</span>}
         </span>
-        {hint && <span className="font-normal text-stone-400 dark:text-stone-500">{hint}</span>}
+        {error && (
+          <span className="flex shrink-0 items-center gap-1 text-[12px] font-semibold text-red-600 dark:text-red-400">
+            <CircleAlert className="size-3.5 shrink-0" aria-hidden="true" />
+            <span className="whitespace-nowrap">{error}</span>
+          </span>
+        )}
       </span>
       {children}
-      {error && (
-        <span className="mt-1.5 flex items-center gap-1.5 text-[12px] font-semibold text-red-600 dark:text-red-400">
-          <CircleAlert className="size-3.5 shrink-0" />
-          {error}
-        </span>
-      )}
     </label>
   )
 }

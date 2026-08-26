@@ -139,19 +139,19 @@ export const compileSpec = ({ admin, business, workflows, blocks }) => {
                   .filter((h) => h.key.trim() || h.value.trim())
                   .map((h) => ({ key: h.key, value: h.value }))
               : [],
-            ...(thirdParty && {
-              requestPayload: tryParseJson(block.requestPayload),
-              responsePayload: tryParseJson(block.responsePayload),
+            requestPayload: tryParseJson(block.requestPayload),
+            responsePayload: tryParseJson(block.responsePayload),
+            ...(block.mappingEnabled && {
+              dataMapping: block.mapping
+                .filter((row) => row.sourceField.trim() || row.targetField.trim())
+                .map((row) => ({
+                  sourceField: row.sourceField,
+                  targetField: row.targetField,
+                  type: row.type,
+                  required: row.required,
+                  notes: row.notes,
+                })),
             }),
-            dataMapping: block.mapping
-              .filter((row) => row.sourceField.trim() || row.targetField.trim())
-              .map((row) => ({
-                sourceField: row.sourceField,
-                targetField: row.targetField,
-                type: row.type,
-                required: row.required,
-                notes: row.notes,
-              })),
             security: {
               ...(block.ipWhitelistRequired && {
                 ipWhitelist: { required: true, addresses: block.whitelistedIps },

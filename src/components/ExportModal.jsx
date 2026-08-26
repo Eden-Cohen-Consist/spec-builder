@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react'
-import { Sparkles, X, Copy, Check } from 'lucide-react'
+import { Sparkles, X, Copy, Check, ListChecks } from 'lucide-react'
 import { buildAiExportText } from '../lib.js'
+
+const EXPORT_REMINDERS = [
+  'לא לשכוח לפתוח את כל המחלקות בצורה מלאה.',
+  'נא לספק את כל הסודות והמפתחות ההכרחיים לעבודה.',
+  'במידה ויש postman collection להוסיף אותו למשימה.',
+]
 
 export default function ExportModal({ spec, onClose }) {
   const [copied, setCopied] = useState(false)
@@ -63,6 +69,17 @@ export default function ExportModal({ spec, onClose }) {
           <p className="mb-4 text-[14.5px] leading-relaxed text-stone-600 dark:text-stone-300">
             הכל מוכן להדבקה בצ&apos;אט AI — הוראות לסוכן + טיוטת האפיון ב-JSON:
           </p>
+          <div className="mb-4 rounded-xl border border-amber-200/80 bg-amber-50/80 px-4 py-3.5 dark:border-amber-500/25 dark:bg-amber-950/30">
+            <h3 className="mb-2 flex items-center gap-2 text-[13px] font-bold text-amber-900 dark:text-amber-300">
+              <ListChecks className="size-4 shrink-0" />
+              לפני ההעתקה
+            </h3>
+            <ol className="list-inside list-decimal space-y-1 text-[13.5px] leading-relaxed text-amber-950/90 dark:text-amber-100/90">
+              {EXPORT_REMINDERS.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ol>
+          </div>
           <div className="relative">
             <button
               type="button"
