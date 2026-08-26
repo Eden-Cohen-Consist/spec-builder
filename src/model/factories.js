@@ -65,6 +65,7 @@ export const makeBlock = (type) => {
         requestPayload: '',
         responsePayload: '',
         mapping: [makeMappingRow()],
+        mappingEnabled: false,
         ipWhitelistRequired: false,
         whitelistedIps: '',
         certificateRequired: false,

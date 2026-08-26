@@ -11,7 +11,7 @@ export default function AppFooter({
 }) {
   return (
     <footer className="pointer-events-none fixed inset-x-0 bottom-0 z-40 bg-gradient-to-t from-paper via-paper/85 to-transparent pb-6 pt-14">
-      <div className="pointer-events-auto mx-auto flex max-w-3xl items-center justify-between px-5">
+      <div className="form-shell pointer-events-auto flex items-center justify-between">
         {wizardStep > 1 ? (
           <GhostButton onClick={onPrev}>הקודם</GhostButton>
         ) : (

@@ -1,4 +1,4 @@
-import { hasContactContent, isThirdParty } from '../lib.js'
+import { hasContactContent } from '../lib.js'
 import { makeIssue } from './issue.js'
 
 const blank = (value) => !String(value ?? '').trim()
@@ -83,6 +83,7 @@ export const isBlockEmpty = (block) => {
         !block.ipWhitelistRequired &&
         !block.certificateRequired &&
         !block.headersEnabled &&
+        !block.mappingEnabled &&
         block.headers.every((h) => blank(h.key) && blank(h.value)) &&
         block.mapping.every(
           (r) => blank(r.sourceField) && blank(r.targetField) && blank(r.notes),
@@ -127,16 +128,14 @@ export const validateBlock = (block) => {
       if (blank(block.endpoint))
         push('error', 'HTTP_ENDPOINT', 'חסר Endpoint', { field: 'endpoint' })
 
-      if (isThirdParty(block.destination)) {
-        if (blank(block.requestPayload))
-          push('error', 'HTTP_REQUEST_PAYLOAD', 'חסר Request Payload — נדרש מול צד שלישי', {
-            field: 'requestPayload',
-          })
-        if (blank(block.responsePayload))
-          push('error', 'HTTP_RESPONSE_PAYLOAD', 'חסר Response Payload — נדרש מול צד שלישי', {
-            field: 'responsePayload',
-          })
-      }
+      if (blank(block.requestPayload))
+        push('error', 'HTTP_REQUEST_PAYLOAD', 'חסר Request Payload', {
+          field: 'requestPayload',
+        })
+      if (blank(block.responsePayload))
+        push('error', 'HTTP_RESPONSE_PAYLOAD', 'חסר Response Payload', {
+          field: 'responsePayload',
+        })
 
       if (block.ipWhitelistRequired && blank(block.whitelistedIps))
         push('error', 'HTTP_WHITELIST_IPS', 'סומן שנדרשת החרגת IP אך לא הוזנו כתובות', {
@@ -147,7 +146,10 @@ export const validateBlock = (block) => {
           field: 'certificateDetails',
         })
 
-      if (!block.mapping.some((r) => !blank(r.sourceField) && !blank(r.targetField)))
+      if (
+        block.mappingEnabled &&
+        !block.mapping.some((r) => !blank(r.sourceField) && !blank(r.targetField))
+      )
         push('warning', 'HTTP_NO_MAPPING', 'כדאי למלא לפחות שורת מיפוי שדות אחת', {
           field: 'mapping',
         })
