@@ -1,5 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
+import { CacheProvider } from "@emotion/react";
+import { ThemeProvider } from "@mui/material/styles";
+import CssBaseline from "@mui/material/CssBaseline";
 import { AlertTriangle, CheckCircle2, FileText } from "lucide-react";
+import { createAppTheme } from "./theme/muiTheme.js";
+import { rtlCache } from "./theme/rtlCache.js";
 import AdminSection from "./components/AdminSection.jsx";
 import BusinessSection from "./components/BusinessSection.jsx";
 import WorkflowSection from "./components/workflow/WorkflowSection.jsx";
@@ -66,6 +71,7 @@ export default function App() {
     () => countIssues(allIssues).errors,
     [allIssues],
   );
+  const muiTheme = useMemo(() => createAppTheme(dark), [dark]);
 
   const shown = useMemo(() => {
     const result = { admin: [], business: [], blocks: new Map() };
@@ -202,7 +208,10 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen pb-40">
+    <CacheProvider value={rtlCache}>
+      <ThemeProvider theme={muiTheme}>
+        <CssBaseline enableColorScheme />
+        <div className="min-h-screen pb-40">
       <AppHeader
         saveState={saveState}
         dark={dark}
@@ -381,6 +390,8 @@ export default function App() {
           }}
         />
       )}
-    </div>
+        </div>
+      </ThemeProvider>
+    </CacheProvider>
   );
 }
