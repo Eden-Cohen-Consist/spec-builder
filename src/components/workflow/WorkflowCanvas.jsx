@@ -74,12 +74,12 @@ function Canvas({ workflow, blocks, dark, fullscreen, onToggleFullscreen }) {
   useEffect(() => {
     setRfNodes((current) => {
       const previous = new Map(current.map((n) => [n.id, n]))
-      return toRfNodes(workflow, issuesByNode).map((next) => {
+      return toRfNodes(workflow, issuesByNode, blocks).map((next) => {
         const prev = previous.get(next.id)
         return prev ? { ...prev, ...next } : next
       })
     })
-  }, [workflow, issuesByNode, setRfNodes])
+  }, [workflow, issuesByNode, blocks, setRfNodes])
 
   const deleteEdge = useCallback(
     (edgeId) => api.removeEdge(workflow.id, edgeId),

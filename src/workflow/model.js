@@ -73,7 +73,7 @@ export const makeWorkflowEdge = (source, target, overrides = {}) => ({
 })
 
 /**
- * Creates a workflow. Seeds START + END only when no nodes are supplied, so migration
+ * Creates a workflow. Seeds START + END only when no nodes are supplied, so load
  * can hand over a fully-built node list without getting stray extras.
  * @returns {Workflow}
  */

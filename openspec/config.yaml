@@ -9,6 +9,11 @@ context: |
   an external LLM chat. The LLM produces the final Markdown spec. schemaVersion of the
   compiled JSON is currently 4.
 
+  Greenfield product: treat every new feature as shipping into a new system. Do not add
+  backward-compatibility layers, legacy format converters, or round-trip keys for
+  superseded shapes unless the user explicitly asks. Load-time sanitization (repair corrupt
+  localStorage so the app does not crash) is allowed; migration of old data formats is not.
+
   Stack: plain JavaScript React (.jsx) + Vite 8 + Tailwind CSS v4 (@tailwindcss/vite;
   tokens live in src/index.css @theme — there is no tailwind.config.js) + @xyflow/react
   (React Flow) + lucide-react + marked. Types are JSDoc @typedef next to factories
@@ -51,8 +56,8 @@ context: |
     validation.js — structural graph checks (name/trigger, START/END, dead ends,
                    orphans unless config.draft, DECISION ≥2 labeled routes,
                    HTTP_REQUEST should reference a block).
-    migrate.js    — load-time only; never mutates in place. Unknown node types are
-                   kept and flagged, never silently dropped.
+    load.js       — load-time sanitization only; never mutates in place. Unknown node
+                   types are kept and flagged, never silently dropped.
     rfAdapter.js  — pure model ↔ React Flow reshape. No domain logic here.
   Canvas rules that bite:
     - WorkflowCanvas MERGES incoming node data into existing RF nodes
@@ -89,14 +94,11 @@ context: |
     Also: parseCurl, markdownToWordHtml (MarkdownToWordModal — "המרת אפיון AI ל-Word").
 
   Persistence: localStorage key glassix-spec-builder:draft:v1
-    { admin, business, workflows, blocks, flow? }, 600ms debounce in App.jsx.
+    { admin, business, workflows, blocks, wizard }, 600ms debounce in App.jsx.
     Theme: glassix-spec-builder:theme. Dark mode = .dark on <html>.
-    Load-time migrations: migrateAdmin (free-text contacts → rows),
-    migrateBusiness (legacy trigger dropped; workflows own triggers),
-    migrateBlocks (standalone security blocks folded into nearest http).
-    Legacy `flow` (pre-graph linear format) is round-tripped verbatim so a
-    rollback never loses data. Pattern: sanitize on load, never destructively
-    drop unrecognized data, keep old keys when cheap.
+    Load-time sanitization in src/persistence/draft.js (admin/business/blocks/wizard)
+    and src/workflow/load.js (workflows). Merge saved data with defaults; repair
+    corrupt shapes so a bad draft never white-screens the app.
 
   UI constraints: dir="rtl" throughout; user-facing copy is Hebrew. Prefer
   logical CSS (start/end, ps/pe, ms/me). Dark counterparts for every colour.
@@ -126,9 +128,11 @@ rules:
       flattening — those must stay in lockstep.
     - When adding a technical block type, the spec must cover BLOCK_META,
       makeBlock, App.jsx renderer, validateBlock / isBlockEmpty, and compileSpec.
-    - Persistence changes must follow sanitize-on-load; never silently drop
-      unrecognized draft fields; keep legacy keys when cheap.
+    - Persistence changes must sanitize on load so corrupt drafts never crash the app.
   design:
+    - >-
+      Greenfield only: no backward-compatibility code, legacy migrations, or support for
+      superseded draft/export shapes unless the user explicitly requests it.
     - >-
       Prefer extending existing modules (src/validation, src/workflow, src/lib.js)
       over new abstraction layers. If a library is the right tool, propose it
@@ -155,6 +159,8 @@ operations:
         Never skip a needed dependency in favor of a homemade substitute.
       - Verify with npm run lint, npm run build, and a browser pass of the changed flow.
       - Keep comments in English; all user-facing strings in Hebrew.
+      - Greenfield only: do not add legacy migrations or backward-compat shims unless
+        the user explicitly asks.
       - If export JSON shape changes, update src/prompts/ai-review.md in the same change.
   archive:
     guidance:

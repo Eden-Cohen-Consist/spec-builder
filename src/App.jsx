@@ -21,14 +21,13 @@ import BlockBody from "./components/app/BlockBody.jsx";
 import { makeBlock, compileSpec } from "./lib.js";
 import { useWorkflows } from "./workflow/useWorkflows.js";
 import { useWorkflowHttpBlocks } from "./workflow/useWorkflowHttpBlocks.js";
-import { migrateWorkflows } from "./workflow/migrate.js";
+import { loadWorkflows } from "./workflow/load.js";
 import { validateSpec, fieldErrors } from "./validation/index.js";
 import { countIssues } from "./validation/issue.js";
 import { DRAFT_KEY, THEME_KEY } from "./persistence/keys.js";
 import { defaultAdmin, defaultBusiness } from "./persistence/defaults.js";
 import {
   draft,
-  legacyFlow,
   initialWizard,
   getInitialAdmin,
   getInitialBusiness,
@@ -39,7 +38,7 @@ import { stepFromScope, stepHasError } from "./wizard/stepHelpers.js";
 export default function App() {
   const [admin, setAdmin] = useState(getInitialAdmin);
   const [business, setBusiness] = useState(getInitialBusiness);
-  const wf = useWorkflows(() => migrateWorkflows(draft));
+  const wf = useWorkflows(() => loadWorkflows(draft));
   const [blocks, setBlocks] = useState(getInitialBlocks);
   const { workflowApi, updateBlock } = useWorkflowHttpBlocks(
     wf,
@@ -100,7 +99,6 @@ export default function App() {
           workflows: wf.workflows,
           blocks,
           wizard: { step: wizardStep, maxReached: wizardMaxReached },
-          ...(legacyFlow && { flow: legacyFlow }),
         }),
       );
       setSaveState("saved");
@@ -228,7 +226,7 @@ export default function App() {
         dark={dark}
       />
 
-      <main className="mx-auto max-w-3xl px-5">
+      <main className="form-shell">
         {wizardStep === 1 && (
           <>
             <div className="animate-rise pb-8 pt-10">

@@ -195,7 +195,7 @@ export default function AdminSection({ value, onChange, issues = [], submitted =
                       מזהה קצר
                     </th>
                     <th className="px-3 py-2.5 text-start font-semibold">
-                      מזהה מחלקה (UUID)
+                      מזהה מחלקה (API Key)
                     </th>
                     <th className="w-10" />
                   </tr>
