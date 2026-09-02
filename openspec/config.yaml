@@ -4,8 +4,8 @@ schema: spec-driven
 # project brief for the next agent. Do not paste this block into proposal/spec/design/tasks.
 context: |
   Product: "בונה אפיונים" (Glassix Spec Builder). Hebrew/RTL SPA for a PM (non-developer)
-  to assemble a technical integration spec. No backend, no API, no DB. One outcome:
-  compile UI state to JSON, wrap it with src/prompts/ai-review.md, copy that text into
+  to assemble a technical integration spec. Frontend lives in client/; API in server/.
+  One outcome: compile UI state to JSON, wrap it with client/src/prompts/ai-review.md, copy that text into
   an external LLM chat. The LLM produces the final Markdown spec. schemaVersion of the
   compiled JSON is currently 4.
 
@@ -15,33 +15,33 @@ context: |
   localStorage so the app does not crash) is allowed; migration of old data formats is not.
 
   Stack: plain JavaScript React (.jsx) + Vite 8 + Tailwind CSS v4 (@tailwindcss/vite;
-  tokens live in src/index.css @theme — there is no tailwind.config.js) + @xyflow/react
+  tokens live in client/src/index.css @theme — there is no tailwind.config.js) + @xyflow/react
   (React Flow) + lucide-react + marked. Types are JSDoc @typedef next to factories
-  (see src/workflow/model.js). @types/react exists only for editor checking; there is
+  (see client/src/workflow/model.js). @types/react exists only for editor checking; there is
   no tsconfig.json. Linter is oxlint only. If a change needs a library, tool,
   tests, or TypeScript, propose it and wait for approval — then use it. Do not
   skip a needed dependency and ship a worse homemade substitute. Verify with
   npm run lint, npm run build, and a real browser pass.
 
-  Layout of the page (src/App.jsx owns most state via useState):
+  Layout of the page (client/src/App.jsx owns most state via useState):
     AdminSection → BusinessSection → WorkflowSection
     then a free-form list of technical blocks.
   The first three are locked, numbered, non-removable (LockedSection). Blocks are
   added/removed via AddBlockPopover and rendered in DynamicBlock, except http which
-  uses HttpBlockCard. Shared form primitives live in src/components/ui.jsx
+  uses HttpBlockCard. Shared form primitives live in client/src/components/ui.jsx
   (Field, Input, Textarea, Select, Checkbox, GhostButton, GhostAddRow, DeleteButton)
   for ordinary fields. Non-trivial UI or other well-solved problems should use a
   maintained library (ask before installing).
 
-  Technical block types (src/constants.js BLOCK_META + src/lib.js makeBlock):
+  Technical block types (client/src/constants.js BLOCK_META + client/src/lib.js makeBlock):
     http, freeText, testData, table.
   INTERNAL_SYSTEMS = glassix, consist; anything else is 3rd-party (payloads required).
-  HttpBlock is split: src/components/HttpBlock.jsx plus src/components/http/
+  HttpBlock is split: client/src/components/HttpBlock.jsx plus client/src/components/http/
   (CurlImport, PayloadEditor, HeadersEditor, MappingTable, SecurityFields).
   iframe-block-demo.html is a standalone visual prototype for a possible iframe block.
   It is NOT wired into BLOCK_META, makeBlock, or the app. Do not treat it as shipped.
 
-  Workflows (src/workflow/): multiple independent graphs, not a linear list.
+  Workflows (client/src/workflow/): multiple independent graphs, not a linear list.
     model.js     — Workflow / WorkflowNode / WorkflowEdge factories. makeWorkflow()
                    seeds START→END when no nodes given.
     constants.js — NODE_META / WORKFLOW_NODE_TYPES is the single source of truth.
@@ -72,7 +72,7 @@ context: |
       and edges vanish. That is the pane, not a graph bug.
 
   Form + workflow validation (already shipped, 2026-07-29 design):
-    src/validation/ (issue.js, rules.js, index.js) produces a flat Issue[] for
+    client/src/validation/ (issue.js, rules.js, index.js) produces a flat Issue[] for
     admin/business/blocks. App concatenates wf.issues. error blocks generate;
     warning does not. generate() opens ValidationModal if any issues exist;
     a clean form goes straight to ExportModal. generateAnyway() exports over
@@ -81,7 +81,7 @@ context: |
     that press, then update live. Untouched blocks: one EMPTY_BLOCK warning,
     no errors. Do not invent a second validation path.
 
-  Export (src/lib.js compileSpec):
+  Export (client/src/lib.js compileSpec):
     Output keys: meta, administrative, businessNeed, workflows, technicalBlocks.
     Drops UI-only fields (canvas position, dangling edges) and ALL uuids.
     Cross-refs are PM wording via uniqueRef (suffix " (2)" on collisions).
@@ -96,8 +96,8 @@ context: |
   Persistence: localStorage key glassix-spec-builder:draft:v1
     { admin, business, workflows, blocks, wizard }, 600ms debounce in App.jsx.
     Theme: glassix-spec-builder:theme. Dark mode = .dark on <html>.
-    Load-time sanitization in src/persistence/draft.js (admin/business/blocks/wizard)
-    and src/workflow/load.js (workflows). Merge saved data with defaults; repair
+    Load-time sanitization in client/src/persistence/draft.js (admin/business/blocks/wizard)
+    and client/src/workflow/load.js (workflows). Merge saved data with defaults; repair
     corrupt shapes so a bad draft never white-screens the app.
 
   UI constraints: dir="rtl" throughout; user-facing copy is Hebrew. Prefer
@@ -134,7 +134,7 @@ rules:
       Greenfield only: no backward-compatibility code, legacy migrations, or support for
       superseded draft/export shapes unless the user explicitly requests it.
     - >-
-      Prefer extending existing modules (src/validation, src/workflow, src/lib.js)
+      Prefer extending existing modules (client/src/validation, client/src/workflow, client/src/lib.js)
       over new abstraction layers. If a library is the right tool, propose it
       and use it after approval — UI or otherwise.
     - >-
@@ -150,7 +150,7 @@ rules:
     - Needed libraries/tools are allowed. Ask before adding a dependency;
       do not hand-roll a worse substitute.
     - If compileSpec or workflows JSON shape changes, include a task to update
-      src/prompts/ai-review.md §3/§4.
+      client/src/prompts/ai-review.md §3/§4.
 
 operations:
   apply:
@@ -160,7 +160,7 @@ operations:
       - Verify with npm run lint, npm run build, and a browser pass of the changed flow.
       - Keep comments in English; all user-facing strings in Hebrew.
       - Greenfield only: do not add legacy migrations or backward-compat shims unless the user explicitly asks.
-      - If export JSON shape changes, update src/prompts/ai-review.md in the same change.
+      - If export JSON shape changes, update client/src/prompts/ai-review.md in the same change.
   archive:
     guidance:
       - Summarize what shipped vs what was left as a prototype (e.g. iframe demo).
