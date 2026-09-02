@@ -122,14 +122,16 @@ export default function ValidationModal({
           >
             חזרה לתיקון
           </button>
-          <button
-            type="button"
-            disabled={errors > 0}
-            onClick={onGenerateAnyway}
-            className="rounded-xl bg-teal-700 px-4 py-2.5 text-[14px] font-bold text-white transition-all hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-teal-700/30 disabled:hover:bg-teal-700/30"
-          >
-            צור בכל זאת
-          </button>
+          {onGenerateAnyway && (
+            <button
+              type="button"
+              disabled={errors > 0}
+              onClick={onGenerateAnyway}
+              className="rounded-xl bg-teal-700 px-4 py-2.5 text-[14px] font-bold text-white transition-all hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-teal-700/30 disabled:hover:bg-teal-700/30"
+            >
+              צור בכל זאת
+            </button>
+          )}
         </footer>
       </div>
     </div>

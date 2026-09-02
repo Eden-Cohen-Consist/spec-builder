@@ -4,6 +4,7 @@ const STEPS = [
   { title: 'הקשר וצורך', description: 'פרטי לקוח ומטרה' },
   { title: 'תרשים זרימה', description: 'תהליכים עסקיים' },
   { title: 'בלוקים טכניים', description: 'אינטגרציות ונתונים' },
+  { title: 'שיחה עם ה-AI', description: 'גיבוש האפיון הסופי' },
 ]
 
 export default function WizardStepper({ step, maxReached, onSelect, dark }) {

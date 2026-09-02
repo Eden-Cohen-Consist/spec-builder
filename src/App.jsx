@@ -11,14 +11,14 @@ import WorkflowSection from "./components/workflow/WorkflowSection.jsx";
 import DynamicBlock from "./components/DynamicBlock.jsx";
 import { HttpBlockCard } from "./components/HttpBlock.jsx";
 import AddBlockPopover from "./components/AddBlockPopover.jsx";
-import ExportModal from "./components/ExportModal.jsx";
 import MarkdownToWordModal from "./components/MarkdownToWordModal.jsx";
 import ValidationModal from "./components/ValidationModal.jsx";
 import WizardStepper from "./components/WizardStepper.jsx";
 import AppHeader from "./components/app/AppHeader.jsx";
 import AppFooter from "./components/app/AppFooter.jsx";
 import BlockBody from "./components/app/BlockBody.jsx";
-import { makeBlock, compileSpec } from "./lib.js";
+import AiChatStep from "./components/ai-chat/AiChatStep.jsx";
+import { makeBlock, compileSpec, buildAiExportText } from "./lib.js";
 import { useWorkflows } from "./workflow/useWorkflows.js";
 import { useWorkflowHttpBlocks } from "./workflow/useWorkflowHttpBlocks.js";
 import { loadWorkflows } from "./workflow/load.js";
@@ -52,7 +52,7 @@ export default function App() {
   const [attempted, setAttempted] = useState({ 1: false, 2: false, 3: false });
   const [checkOpen, setCheckOpen] = useState(false);
   const [toast, setToast] = useState(null);
-  const [spec, setSpec] = useState(null);
+  const [chatSession, setChatSession] = useState(null);
   const [wordModalOpen, setWordModalOpen] = useState(false);
   const [saveState, setSaveState] = useState("idle");
   const [dark, setDark] = useState(() =>
@@ -112,6 +112,30 @@ export default function App() {
     return () => clearTimeout(t);
   }, [toast]);
 
+  useEffect(() => {
+    if (wizardStep !== 4 || chatSession) return;
+    setAttempted({ 1: true, 2: true, 3: true });
+    if (errorCount > 0) {
+      setWizardStep(3);
+      setCheckOpen(true);
+      return;
+    }
+    setChatSession({
+      id: crypto.randomUUID(),
+      seed: buildAiExportText(
+        compileSpec({ admin, business, workflows: wf.workflows, blocks }),
+      ),
+    });
+  }, [
+    admin,
+    blocks,
+    business,
+    chatSession,
+    errorCount,
+    wf.workflows,
+    wizardStep,
+  ]);
+
   const toggleTheme = () => {
     const next = !dark;
     setDark(next);
@@ -134,6 +158,7 @@ export default function App() {
     setWizardStep(1);
     setWizardMaxReached(1);
     setAttempted({ 1: false, 2: false, 3: false });
+    setChatSession(null);
     setCheckOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -143,18 +168,42 @@ export default function App() {
 
   const goToStep = (next) => {
     if (next < 1 || next > wizardMaxReached) return;
+    if (next === 4 && errorCount > 0) {
+      setAttempted({ 1: true, 2: true, 3: true });
+      setCheckOpen(true);
+      return;
+    }
+    if (wizardStep === 4 && next !== 4) setChatSession(null);
     setWizardStep(next);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const goPrev = () => {
     if (wizardStep <= 1) return;
+    if (wizardStep === 4) setChatSession(null);
     setWizardStep(wizardStep - 1);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const goNext = () => {
-    if (wizardStep >= 3) return;
+    if (wizardStep >= 4) return;
+    if (wizardStep === 3) {
+      setAttempted({ 1: true, 2: true, 3: true });
+      if (errorCount > 0) {
+        setCheckOpen(true);
+        return;
+      }
+      setChatSession({
+        id: crypto.randomUUID(),
+        seed: buildAiExportText(
+          compileSpec({ admin, business, workflows: wf.workflows, blocks }),
+        ),
+      });
+      setWizardStep(4);
+      setWizardMaxReached(4);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
     if (stepHasError(allIssues, wizardStep)) {
       markAttempted(wizardStep);
       return;
@@ -163,20 +212,6 @@ export default function App() {
     setWizardStep(next);
     setWizardMaxReached((max) => Math.max(max, next));
     window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const generate = () => {
-    setAttempted({ 1: true, 2: true, 3: true });
-    if (allIssues.length > 0) {
-      setCheckOpen(true);
-      return;
-    }
-    setSpec(compileSpec({ admin, business, workflows: wf.workflows, blocks }));
-  };
-
-  const generateAnyway = () => {
-    setCheckOpen(false);
-    setSpec(compileSpec({ admin, business, workflows: wf.workflows, blocks }));
   };
 
   const goToIssue = (item) => {
@@ -336,15 +371,16 @@ export default function App() {
             </div>
           </>
         )}
+
+        {wizardStep === 4 && chatSession && (
+          <AiChatStep sessionId={chatSession.id} seed={chatSession.seed} />
+        )}
       </main>
 
       <AppFooter
         wizardStep={wizardStep}
-        attempted={attempted}
-        errorCount={errorCount}
         onPrev={goPrev}
         onNext={goNext}
-        onGenerate={generate}
       />
 
       {toast && (
@@ -366,14 +402,11 @@ export default function App() {
         </div>
       )}
 
-      {spec && <ExportModal spec={spec} onClose={() => setSpec(null)} />}
-
       {checkOpen && (
         <ValidationModal
           issues={allIssues}
           blocks={blocks}
           onClose={() => setCheckOpen(false)}
-          onGenerateAnyway={generateAnyway}
           onNavigate={goToIssue}
         />
       )}

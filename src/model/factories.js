@@ -2,7 +2,7 @@ import { INTERNAL_SYSTEMS } from '../constants.js'
 
 export const makeId = () => crypto.randomUUID()
 
-const WIZARD_STEPS = new Set([1, 2, 3])
+const WIZARD_STEPS = new Set([1, 2, 3, 4])
 
 /** Clamp a persisted wizard cursor. Missing or junk values fall back to step 1. */
 export const sanitizeWizard = (raw) => {

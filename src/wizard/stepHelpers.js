@@ -2,6 +2,7 @@ const STEP_SCOPES = {
   1: new Set(["admin", "business"]),
   2: new Set(["workflow"]),
   3: new Set(["block"]),
+  4: new Set(),
 };
 
 export const stepFromScope = (scope) => {
