@@ -159,8 +159,7 @@ operations:
         Never skip a needed dependency in favor of a homemade substitute.
       - Verify with npm run lint, npm run build, and a browser pass of the changed flow.
       - Keep comments in English; all user-facing strings in Hebrew.
-      - Greenfield only: do not add legacy migrations or backward-compat shims unless
-        the user explicitly asks.
+      - Greenfield only: do not add legacy migrations or backward-compat shims unless the user explicitly asks.
       - If export JSON shape changes, update src/prompts/ai-review.md in the same change.
   archive:
     guidance:
