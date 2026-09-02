@@ -6,6 +6,7 @@
     "build": "npm run build --prefix client",
     "lint": "npm run lint --prefix client",
     "preview": "npm run preview --prefix client",
-    "dev:server": "npm run dev --prefix server"
+    "dev:server": "npm run dev --prefix server",
+    "build:server": "npm run build --prefix server"
   }
 }

@@ -1,23 +1,22 @@
 import dotenv from "dotenv";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { z } from "zod";
 
 export const serverRoot = fileURLToPath(new URL("../../", import.meta.url));
 
-const envSchema = z.object({
-  ANTHROPIC_API_KEY: z.string().min(1, "ANTHROPIC_API_KEY is required"),
-  ANTHROPIC_MODEL: z.string().default("claude-opus-5"),
-  MAX_TOKENS: z.coerce.number().int().positive().default(64_000),
-  RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60_000),
-  RATE_LIMIT_MAX: z.coerce.number().int().positive().default(20),
-  PORT: z.coerce.number().int().positive().default(3001),
-  USAGE_FILE: z.string().default("data/usage.json"),
-});
+dotenv.config({ path: resolve(serverRoot, ".env"), quiet: true });
 
-export type Env = z.infer<typeof envSchema>;
-
-export function loadEnv(): Env {
-  dotenv.config({ path: resolve(serverRoot, ".env"), quiet: true });
-  return envSchema.parse(process.env);
+function numberFromEnv(name: string, fallback: number): number {
+  const value = Number(process.env[name]);
+  return Number.isFinite(value) && value > 0 ? value : fallback;
 }
+
+export const env = {
+  ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY ?? "",
+  ANTHROPIC_MODEL: process.env.ANTHROPIC_MODEL ?? "claude-opus-5",
+  MAX_TOKENS: numberFromEnv("MAX_TOKENS", 64_000),
+  RATE_LIMIT_WINDOW_MS: numberFromEnv("RATE_LIMIT_WINDOW_MS", 60_000),
+  RATE_LIMIT_MAX: numberFromEnv("RATE_LIMIT_MAX", 20),
+  PORT: numberFromEnv("PORT", 3001),
+  USAGE_FILE: process.env.USAGE_FILE ?? "data/usage.json",
+};

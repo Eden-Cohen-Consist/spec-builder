@@ -5,8 +5,6 @@ export const finalSpecSchema = z.object({
   specification: z.string().min(1),
 }).strict();
 
-export type FinalSpec = z.infer<typeof finalSpecSchema>;
-
 export const finalSpecTool: Anthropic.Tool = {
   name: "submit_final_spec",
   description:
