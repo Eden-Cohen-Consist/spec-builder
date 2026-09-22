@@ -1,15 +1,11 @@
 import type Anthropic from "@anthropic-ai/sdk";
-import {
-  claude,
-  claudeMaxTokens,
-  claudeModel,
-} from "../config/claude.js";
+import { claude } from "../config/claude.js";
 import type { ChatRequest } from "../schemas/chatSchema.js";
-import { finalSpecSchema, finalSpecTool } from "../schemas/finalSpecTool.js";
+import { finalSpecSchema } from "../schemas/finalSpecTool.js";
+import { toClaudeStreamParams } from "../transformers/claudeTransformer.js";
 import type { ChatStreamEvent } from "../types/index.js";
 
 const FINAL_TOOL_NAME = "submit_final_spec";
-const FINAL_INSTRUCTION = "Ask clarifying questions as normal text. When the complete specification is ready, call submit_final_spec exactly once; never output the complete final specification as normal text.";
 
 export const INVALID_TOOL_PAYLOAD = "InvalidToolPayload";
 export const UNEXPECTED_TOOL = "UnexpectedTool";
@@ -21,28 +17,8 @@ function serviceError(name: string, message: string): Error {
 }
 
 export async function* streamChat( request: ChatRequest,signal?: AbortSignal ): AsyncGenerator<ChatStreamEvent> {
-  const messages: Anthropic.MessageParam[] = [
-    ...request.history,
-    { role: "user", content: request.turn },
-  ];
-  
-  const system = request.seed
-    ? `${FINAL_INSTRUCTION}\n\n${request.seed.systemPrompt}\n\nHidden project context:\n${request.seed.context}`
-    : FINAL_INSTRUCTION;
-
-  const params = {
-    model: claudeModel,
-    max_tokens: claudeMaxTokens,
-    system,
-    tools: [finalSpecTool],
-    tool_choice: {
-      type: "auto" as const,
-      disable_parallel_tool_use: true,
-    },
-    messages,
-  };
-
-  const stream = claude.messages.stream(params, { signal });
+  const claudeStreamParams = toClaudeStreamParams(request);
+  const stream = claude.messages.stream(claudeStreamParams, { signal });
 
   for await (const event of stream) {
     if ( event.type === "content_block_delta" && event.delta.type === "text_delta" ) {

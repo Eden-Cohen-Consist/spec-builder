@@ -20,13 +20,7 @@ export class ChatApiError extends Error {
  * Streams chat events from POST /api/chat (SSE).
  * Yields: { type: "text", delta }, { type: "final", specification }, { type: "done", usage }
  */
-export async function* streamChat({
-  sessionId,
-  seed,
-  history,
-  turn,
-  signal,
-}) {
+export async function* streamChat({ sessionId, seed, history, turn, signal }) {
   let response;
   try {
     response = await fetch("/api/chat", {

@@ -7,6 +7,7 @@ export const finalSpecSchema = z.object({
 
 export const finalSpecTool: Anthropic.Tool = {
   name: "submit_final_spec",
+  //TODO: probably mode B
   description:
     "Submit the complete final specification. Call this only when the specification is ready; never paste a final specification as ordinary text.",
   strict: true,

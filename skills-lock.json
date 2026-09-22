@@ -5,7 +5,7 @@
       "source": "anthropics/skills",
       "sourceType": "github",
       "skillPath": "skills/claude-api/SKILL.md",
-      "computedHash": "e0736f1e350b9f3f3b5c6ca27a4bf4e6bb74aed762c2575210b336c499ddac80"
+      "computedHash": "4bad6e67793b8935e5934ab153dc950d436510f8a85d9b50a7baf7c76716ce14"
     },
     "primitives": {
       "source": "assistant-ui/skills",

@@ -2,6 +2,7 @@ import express from "express";
 import { env } from "./config/env.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import apiRouter from "./routes/index.js";
+import { logger } from "./logger/index.js";
 
 const app = express();
 
@@ -13,5 +14,5 @@ app.use("/api", apiRouter);
 app.use(errorHandler);
 
 app.listen(env.PORT, () => {
-  console.log(`Spec Builder server listening on http://localhost:${env.PORT}`);
+  logger.info(`Spec Builder server listening on http://localhost:${env.PORT}`);
 });

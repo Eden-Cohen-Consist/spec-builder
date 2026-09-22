@@ -1,2 +1,4 @@
 .env
 data/usage.json
+logs/
+dev/thougths.md

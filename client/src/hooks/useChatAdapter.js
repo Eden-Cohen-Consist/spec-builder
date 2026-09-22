@@ -44,27 +44,23 @@ export function useChatAdapter({ sessionId, seed }) {
       async *run({ messages, abortSignal }) {
         setError("");
         const visible = messages
-          .filter(
-            (message) =>
-              message.role === "user" || message.role === "assistant",
-          )
-          .map((message) => ({
-            role: message.role,
-            content: messageText(message),
-          }))
+          .filter((message) => message.role === "user" || message.role === "assistant")
+          .map((message) => ({ role: message.role, content: messageText(message) }))
           .filter((message) => message.content);
         const current = visible.at(-1);
 
         let text = "";
+        
+        const chatParams = {
+          sessionId,
+          seed,
+          history: visible.slice(0, -1),
+          turn: current?.content ?? "",
+          signal: abortSignal,
+        };
 
         try {
-          for await (const event of streamChat({
-            sessionId,
-            seed,
-            history: visible.slice(0, -1),
-            turn: current?.content ?? "",
-            signal: abortSignal,
-          })) {
+          for await (const event of streamChat(chatParams)) {
             if (event.type === "text") {
               text += event.delta;
               yield { content: [{ type: "text", text }] };

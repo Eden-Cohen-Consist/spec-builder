@@ -11,15 +11,13 @@ function sendEvent(response: Response, event: string, data: unknown): void {
   response.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
 }
 
-export const chatController = async (
-  request: Request,
-  response: Response,
-): Promise<void> => {
-  const parsed = chatRequestSchema.safeParse(request.body);
+//TODO: need changing to the real system prompt later
+export const chatController = async ( request: Request,response: Response): Promise<void> => { 
+  const parsed = chatRequestSchema.safeParse(request.body);//TODO: parsing should be in middleware
   if (!parsed.success) {
     response.status(400).json({
       error: "Invalid chat request",
-      details: parsed.error.flatten(),
+      details: parsed.error.flatten(),//TODO: deprecated - needs changing
     });
     return;
   }
@@ -36,7 +34,7 @@ export const chatController = async (
   const abortController = new AbortController();
   const abort = () => abortController.abort();
   const abortIncompleteRequest = () => {
-    if (request.aborted || !request.complete) abort();
+    if (request.aborted || !request.complete) abort();//TODO: deprecated - needs changing
   };
 
   request.on("aborted", abort);
