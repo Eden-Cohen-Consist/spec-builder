@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@assistant-ui/react": "^0.15.17",
+    "@assistant-ui/react-markdown": "^0.14.16",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@mui/material": "^9.3.1",
@@ -22,6 +23,8 @@
     "marked": "^18.0.6",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
     "tailwindcss": "^4.3.2"
   },
   "devDependencies": {

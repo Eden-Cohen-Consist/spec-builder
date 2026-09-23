@@ -5,7 +5,7 @@
 - check why each message to claude takes so long. - DONE
 - add waiting animation with changing words. 
 - add more relevant logs on the server to see the flow happening in the log files. -DONE 
-- move the system prompt to the server - shouldnt be visible.
-- make the answer bubble parse MD  format - for titles\sub titles... etc
+- move the system prompt to the server - shouldnt be visible. -DONE
+- make the answer bubble parse MD  format - for titles\sub titles... etc -DONE
 - also need handling the tool call, and what happends when claude starts generating the final spec.
 

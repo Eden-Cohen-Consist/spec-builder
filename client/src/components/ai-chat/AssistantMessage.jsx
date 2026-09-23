@@ -5,6 +5,7 @@ import {
   MessagePrimitive,
 } from "@assistant-ui/react";
 import { AlertCircle, Check, Copy } from "lucide-react";
+import { MarkdownText } from "./MarkdownText.jsx";
 
 export function AssistantMessage() {
   return (
@@ -19,11 +20,7 @@ export function AssistantMessage() {
         <div className="flex max-w-[84%] flex-col items-end gap-1">
           <div className="rounded-2xl bg-stone-100 px-3.5 py-2 text-[14px] leading-6 text-stone-800 dark:bg-stone-800 dark:text-stone-100">
             <MessagePrimitive.Parts>
-              {({ part }) =>
-                part.type === "text" ? (
-                  <p className="whitespace-pre-wrap">{part.text}</p>
-                ) : null
-              }
+              {({ part }) => (part.type === "text" ? <MarkdownText /> : null)}
             </MessagePrimitive.Parts>
           </div>
           <ActionBarPrimitive.Root className="flex opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
