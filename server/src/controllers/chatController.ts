@@ -8,20 +8,15 @@ import {
 import { logExchange } from "../services/usageService.js";
 import { logger } from "../logger/index.js";
 
-function logChat(event: string, data: unknown): void {
-  logger.info(`[chat] ${event} ${JSON.stringify(data)}`);
-}
-
 function sendEvent(response: Response, event: string, data: unknown): void {
   response.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
 }
 
-//TODO: need changing to the real system prompt later
+//TODO: parsing should be in middleware
 export const chatController = async ( request: Request,response: Response): Promise<void> => { 
-  const startedAt = performance.now();
-  const parsed = chatRequestSchema.safeParse(request.body);//TODO: parsing should be in middleware
+  const parsed = chatRequestSchema.safeParse(request.body);
   if (!parsed.success) {
-    logChat("request_invalid", { issues: parsed.error.issues.length });
+    logger.warn("Invalid chat request", { module: "chatController" });
     response.status(400).json({
       error: "Invalid chat request",
       details: parsed.error.flatten(),//TODO: deprecated - needs changing
@@ -30,11 +25,7 @@ export const chatController = async ( request: Request,response: Response): Prom
   }
 
   const sessionId = parsed.data.sessionId;
-  logChat("request_received", {
-    sessionId,
-    historyMessages: parsed.data.history.length,
-    turnCharacters: parsed.data.turn.length,
-  });
+  logger.info("Chat request received", { module: "chatController", sessionId });
 
   response.status(200);
   response.set({
@@ -44,17 +35,10 @@ export const chatController = async ( request: Request,response: Response): Prom
     "X-Accel-Buffering": "no",
   });
   response.flushHeaders();
-  logChat("sse_headers_sent", {
-    sessionId,
-    elapsedMs: Math.round(performance.now() - startedAt),
-  });
 
   const abortController = new AbortController();
   const abort = () => {
-    logChat("request_aborted", {
-      sessionId,
-      elapsedMs: Math.round(performance.now() - startedAt),
-    });
+    logger.warn("Chat request aborted", { module: "chatController", sessionId });
     abortController.abort();
   };
   const abortIncompleteRequest = () => {
@@ -66,61 +50,27 @@ export const chatController = async ( request: Request,response: Response): Prom
   response.on("close", abort);
 
   try {
-    let textEvents = 0;
     for await (const event of streamChat(parsed.data, abortController.signal)) {
       if (event.type === "text") {
         sendEvent(response, "text", { delta: event.delta });
-        textEvents += 1;
-        if (textEvents === 1) {
-          logChat("first_text_sent_to_client", {
-            sessionId,
-            elapsedMs: Math.round(performance.now() - startedAt),
-            deltaCharacters: event.delta.length,
-          });
-        }
       } else if (event.type === "final") {
         sendEvent(response, "final", { specification: event.specification });
-        logChat("final_spec_sent_to_client", {
-          sessionId,
-          elapsedMs: Math.round(performance.now() - startedAt),
-          specificationCharacters: event.specification.length,
-        });
+        logger.info("Final spec sent", { module: "chatController", sessionId });
       } else {
-        const usageStartedAt = performance.now();
-        logChat("usage_write_started", { sessionId, usage: event.usage });
         try {
           await logExchange(parsed.data.sessionId, event.usageTurn);
-          logChat("usage_write_finished", {
-            sessionId,
-            durationMs: Math.round(performance.now() - usageStartedAt),
-          });
         } catch (error) {
-          logChat("usage_write_failed", {
-            sessionId,
-            error: error instanceof Error ? error.message : String(error),
-          });
+          logger.error("Usage persist failed", { module: "chatController", sessionId });
         }
         sendEvent(response, "done", { usage: event.usage });
-        logChat("done_sent_to_client", {
-          sessionId,
-          elapsedMs: Math.round(performance.now() - startedAt),
-          textEvents,
-        });
       }
     }
   } catch (error) {
     if (abortController.signal.aborted || response.destroyed) {
-      logChat("stream_stopped_after_abort", { sessionId });
       return;
     }
 
-    logChat("stream_failed", {
-      sessionId,
-      elapsedMs: Math.round(performance.now() - startedAt),
-      error: error instanceof Error
-        ? { name: error.name, message: error.message, stack: error.stack }
-        : String(error),
-    });
+    logger.error("Chat stream failed", { module: "chatController", sessionId,error });
     const invalidTool = error instanceof Error
       && (error.name === INVALID_TOOL_PAYLOAD || error.name === UNEXPECTED_TOOL);
     sendEvent(response, "error", {
@@ -134,9 +84,6 @@ export const chatController = async ( request: Request,response: Response): Prom
     request.off("close", abortIncompleteRequest);
     response.off("close", abort);
     if (!response.writableEnded && !response.destroyed) response.end();
-    logChat("request_finished", {
-      sessionId,
-      elapsedMs: Math.round(performance.now() - startedAt),
-    });
+    logger.info("Chat request finished", { module: "chatController", sessionId });
   }
 };

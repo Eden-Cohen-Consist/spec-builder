@@ -35,7 +35,7 @@ const toUserMessage = (error) => {
   return "הזרמת התשובה הופסקה.";
 };
 
-export function useChatAdapter({ sessionId, seed }) {
+export function useChatAdapter({ sessionId, spec }) {
   const [finalSpec, setFinalSpec] = useState("");
   const [error, setError] = useState("");
 
@@ -53,7 +53,7 @@ export function useChatAdapter({ sessionId, seed }) {
         
         const chatParams = {
           sessionId,
-          seed,
+          spec,
           history: visible.slice(0, -1),
           turn: current?.content ?? "",
           signal: abortSignal,
@@ -85,7 +85,7 @@ export function useChatAdapter({ sessionId, seed }) {
         }
       },
     }),
-    [seed, sessionId],
+    [spec, sessionId],
   );
 
   return { adapter, finalSpec, error };

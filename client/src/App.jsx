@@ -18,7 +18,7 @@ import AppHeader from "./components/app/AppHeader.jsx";
 import AppFooter from "./components/app/AppFooter.jsx";
 import BlockBody from "./components/app/BlockBody.jsx";
 import AiChatStep from "./components/ai-chat/AiChatStep.jsx";
-import { makeBlock, compileSpec, buildAiExportText } from "./lib.js";
+import { makeBlock, compileSpec } from "./lib.js";
 import { useWorkflows } from "./workflow/useWorkflows.js";
 import { useWorkflowHttpBlocks } from "./workflow/useWorkflowHttpBlocks.js";
 import { loadWorkflows } from "./workflow/load.js";
@@ -122,9 +122,7 @@ export default function App() {
     }
     setChatSession({
       id: crypto.randomUUID(),
-      seed: buildAiExportText(
-        compileSpec({ admin, business, workflows: wf.workflows, blocks }),
-      ),
+      spec: compileSpec({ admin, business, workflows: wf.workflows, blocks }),
     });
   }, [
     admin,
@@ -195,9 +193,7 @@ export default function App() {
       }
       setChatSession({
         id: crypto.randomUUID(),
-        seed: buildAiExportText(
-          compileSpec({ admin, business, workflows: wf.workflows, blocks }),
-        ),
+        spec: compileSpec({ admin, business, workflows: wf.workflows, blocks }),
       });
       setWizardStep(4);
       setWizardMaxReached(4);
@@ -373,7 +369,7 @@ export default function App() {
         )}
 
         {wizardStep === 4 && chatSession && (
-          <AiChatStep sessionId={chatSession.id} seed={chatSession.seed} />
+          <AiChatStep sessionId={chatSession.id} spec={chatSession.spec} />
         )}
       </main>
 

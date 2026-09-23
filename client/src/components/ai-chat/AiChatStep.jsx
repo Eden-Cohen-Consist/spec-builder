@@ -6,8 +6,8 @@ import {
 import { useChatAdapter } from "../../hooks/useChatAdapter.js";
 import { ChatThread } from "./ChatThread.jsx";
 
-export default function AiChatStep({ sessionId, seed }) {
-  const { adapter, finalSpec, error } = useChatAdapter({ sessionId, seed });
+export default function AiChatStep({ sessionId, spec }) {
+  const { adapter, finalSpec, error } = useChatAdapter({ sessionId, spec });
   const runtime = useLocalRuntime(adapter);
   const [copied, setCopied] = useState(false);
   const copyTimer = useRef(null);

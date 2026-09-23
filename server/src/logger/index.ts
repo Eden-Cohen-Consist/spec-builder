@@ -10,17 +10,28 @@ const level =
   process.env.LOG_LEVEL ??
   (process.env.NODE_ENV === "production" ? "info" : "debug");
 
-const logFormat = winston.format.combine(
+const baseFormat = winston.format.combine(
   winston.format.timestamp(),
   winston.format.errors({ stack: true }),
-  winston.format.printf(({ level: logLevel, message, timestamp, stack }) => {
-    const line = `${timestamp} [${logLevel}] ${message}`;
-    return stack ? `${line}\n${stack}` : line;
-  }),
+);
+
+const consoleFormat = winston.format.combine(
+  baseFormat,
+  winston.format.printf(
+    ({ level: logLevel, message, timestamp, stack, module }) => {
+      const text =
+        typeof module === "string" ? `[${module}] ${message}` : message;
+      const line = `${timestamp} [${logLevel}] ${text}`;
+      return stack ? `${line}\n${stack}` : line;
+    },
+  ),
 );
 
 export const logger = winston.createLogger({
   level,
-  format: logFormat,
-  transports: [new winston.transports.Console(), new DailyFileTransport()],
+  format: baseFormat,
+  transports: [
+    new winston.transports.Console({ format: consoleFormat }),
+    new DailyFileTransport(),
+  ],
 });

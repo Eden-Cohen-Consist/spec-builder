@@ -7,10 +7,7 @@ export const chatMessageSchema = z.object({
 
 export const chatRequestSchema = z.object({
   sessionId: z.string().min(1).max(128),
-  seed: z.object({
-    systemPrompt: z.string(),
-    context: z.string(),
-  }).strict().optional(),
+  spec: z.record(z.string(), z.unknown()),
   history: z.array(chatMessageSchema),
   turn: z.string().min(1),
 }).strict();
