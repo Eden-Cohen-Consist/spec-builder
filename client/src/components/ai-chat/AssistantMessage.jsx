@@ -1,43 +1,69 @@
 import {
   ActionBarPrimitive,
+  AuiIf,
   ErrorPrimitive,
   MessagePrimitive,
 } from "@assistant-ui/react";
-import { AlertCircle, Bot, Copy } from "lucide-react";
+import { AlertCircle, Check, Copy } from "lucide-react";
 
 export function AssistantMessage() {
   return (
-    <MessagePrimitive.Root className="group/message py-4">
-      <div className="flex items-start gap-3">
-        <span className="mt-1 flex size-8 shrink-0 items-center justify-center rounded-xl border border-teal-700/15 bg-teal-50 text-teal-800 dark:border-teal-400/20 dark:bg-teal-400/10 dark:text-teal-300">
-          <Bot className="size-4" />
-        </span>
-        <div className="min-w-0 flex-1 border-s border-stone-200 ps-4 dark:border-stone-700">
-          <MessagePrimitive.Parts>
-            {({ part }) =>
-              part.type === "text" ? (
-                <p className="whitespace-pre-wrap text-[14.5px] leading-7 text-stone-700 dark:text-stone-200">
-                  {part.text}
-                </p>
-              ) : null
-            }
-          </MessagePrimitive.Parts>
-          <MessagePrimitive.Error>
-            <ErrorPrimitive.Root className="mt-2 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[13px] text-red-700 dark:border-red-500/25 dark:bg-red-950/30 dark:text-red-300">
-              <AlertCircle className="size-4 shrink-0" />
-              <ErrorPrimitive.Message />
-            </ErrorPrimitive.Root>
-          </MessagePrimitive.Error>
-          <ActionBarPrimitive.Root className="mt-2 flex opacity-0 transition-opacity group-hover/message:opacity-100 group-focus-within/message:opacity-100">
+    <MessagePrimitive.Root className="group flex flex-col items-end gap-1 py-2">
+      <AuiIf
+        condition={({ message }) =>
+          message.content.some(
+            (part) => part.type === "text" && part.text.length > 0,
+          )
+        }
+      >
+        <div className="flex max-w-[84%] flex-col items-end gap-1">
+          <div className="rounded-2xl bg-stone-100 px-3.5 py-2 text-[14px] leading-6 text-stone-800 dark:bg-stone-800 dark:text-stone-100">
+            <MessagePrimitive.Parts>
+              {({ part }) =>
+                part.type === "text" ? (
+                  <p className="whitespace-pre-wrap">{part.text}</p>
+                ) : null
+              }
+            </MessagePrimitive.Parts>
+          </div>
+          <ActionBarPrimitive.Root className="flex opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
             <ActionBarPrimitive.Copy
               aria-label="העתקת התשובה"
-              className="rounded-lg p-1.5 text-stone-400 hover:bg-stone-100 hover:text-teal-700 dark:hover:bg-stone-800 dark:hover:text-teal-300"
+              className="rounded-md p-1 text-stone-400 hover:bg-stone-100 hover:text-teal-700 dark:hover:bg-stone-800 dark:hover:text-teal-300"
             >
-              <Copy className="size-3.5" />
+              <AuiIf condition={({ message }) => message.isCopied}>
+                <Check className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+              </AuiIf>
+              <AuiIf condition={({ message }) => !message.isCopied}>
+                <Copy className="size-3.5" />
+              </AuiIf>
             </ActionBarPrimitive.Copy>
           </ActionBarPrimitive.Root>
         </div>
-      </div>
+      </AuiIf>
+      <AuiIf
+        condition={({ message }) =>
+          message.status.type === "running" &&
+          !message.content.some(
+            (part) => part.type === "text" && part.text.length > 0,
+          )
+        }
+      >
+        <span
+          className="relative my-2 me-1 flex size-3 items-center justify-center"
+          role="status"
+          aria-label="העוזר חושב"
+        >
+          <span className="absolute size-3 animate-ping rounded-full bg-stone-400/45 dark:bg-stone-500/60" />
+          <span className="size-1.5 rounded-full bg-stone-500 dark:bg-stone-300" />
+        </span>
+      </AuiIf>
+      <MessagePrimitive.Error>
+        <ErrorPrimitive.Root className="flex items-center gap-2 text-[13px] text-red-700 dark:text-red-300">
+          <AlertCircle className="size-3.5 shrink-0" />
+          <ErrorPrimitive.Message />
+        </ErrorPrimitive.Root>
+      </MessagePrimitive.Error>
     </MessagePrimitive.Root>
   );
 }

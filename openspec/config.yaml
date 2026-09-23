@@ -5,33 +5,37 @@ schema: spec-driven
 context: |
   Product: "בונה אפיונים" (Glassix Spec Builder). Hebrew/RTL SPA for a PM (non-developer)
   to assemble a technical integration spec. Frontend lives in client/; API in server/.
-  One outcome: compile UI state to JSON, wrap it with client/src/prompts/ai-review.md, copy that text into
-  an external LLM chat. The LLM produces the final Markdown spec. schemaVersion of the
-  compiled JSON is currently 4.
+  The four-step wizard collects the product data, compiles it to schemaVersion 4 JSON,
+  wraps it with client/src/prompts/ai-review.md, and uses that text to seed the in-app
+  Claude chat. Claude asks clarification questions and returns the final Markdown spec.
 
   Greenfield product: treat every new feature as shipping into a new system. Do not add
   backward-compatibility layers, legacy format converters, or round-trip keys for
   superseded shapes unless the user explicitly asks. Load-time sanitization (repair corrupt
   localStorage so the app does not crash) is allowed; migration of old data formats is not.
 
-  Stack: plain JavaScript React (.jsx) + Vite 8 + Tailwind CSS v4 (@tailwindcss/vite;
-  tokens live in client/src/index.css @theme — there is no tailwind.config.js) + @xyflow/react
-  (React Flow) + lucide-react + marked. Types are JSDoc @typedef next to factories
-  (see client/src/workflow/model.js). @types/react exists only for editor checking; there is
-  no tsconfig.json. Linter is oxlint only. If a change needs a library, tool,
-  tests, or TypeScript, propose it and wait for approval — then use it. Do not
-  skip a needed dependency and ship a worse homemade substitute. Verify with
-  npm run lint, npm run build, and a real browser pass.
+  Frontend stack: plain JavaScript React (.jsx) + Vite 8 + Tailwind CSS v4
+  (@tailwindcss/vite; tokens live in client/src/index.css @theme; no tailwind.config.js)
+  + MUI with Emotion RTL + Ant Design Steps + @xyflow/react + @assistant-ui/react
+  + lucide-react + marked. Types are JSDoc @typedef next to frontend factories
+  (see client/src/workflow/model.js); @types/react is editor-only and the client has no
+  tsconfig.json. Frontend linting is oxlint. Backend stack: TypeScript + Express 5 +
+  Zod + official @anthropic-ai/sdk + Winston. If a change needs a new dependency,
+  tool, or test setup, propose it and wait for approval. Verify frontend changes with
+  npm run lint and npm run build; verify backend changes with npm run build:server;
+  UI changes also require a real browser pass.
 
-  Layout of the page (client/src/App.jsx owns most state via useState):
-    AdminSection → BusinessSection → WorkflowSection
-    then a free-form list of technical blocks.
-  The first three are locked, numbered, non-removable (LockedSection). Blocks are
-  added/removed via AddBlockPopover and rendered in DynamicBlock, except http which
-  uses HttpBlockCard. Shared form primitives live in client/src/components/ui.jsx
-  (Field, Input, Textarea, Select, Checkbox, GhostButton, GhostAddRow, DeleteButton)
-  for ordinary fields. Non-trivial UI or other well-solved problems should use a
-  maintained library (ask before installing).
+  Layout is a four-step wizard; client/src/App.jsx owns most state via useState:
+    Step 1: AdminSection + BusinessSection
+    Step 2: WorkflowSection
+    Step 3: free-form technical blocks
+    Step 4: AiChatStep
+  Blocks are added/removed via AddBlockPopover and rendered in DynamicBlock, except
+  http which uses HttpBlockCard. Shared form primitives live in
+  client/src/components/ui.jsx (Field, Input, Textarea, Select and Checkbox wrap MUI;
+  GhostButton, GhostAddRow and DeleteButton remain local controls). App.jsx installs
+  the MUI RTL ThemeProvider; WizardStepper uses Ant Design. Non-trivial UI or other
+  well-solved problems should use a maintained library (ask before installing).
 
   Technical block types (client/src/constants.js BLOCK_META + client/src/lib.js makeBlock):
     http, freeText, testData, table.
@@ -71,15 +75,14 @@ context: |
     - A hidden browser pane cannot measure the canvas; nodes stay visibility:hidden
       and edges vanish. That is the pane, not a graph bug.
 
-  Form + workflow validation (already shipped, 2026-07-29 design):
+  Form + workflow validation:
     client/src/validation/ (issue.js, rules.js, index.js) produces a flat Issue[] for
-    admin/business/blocks. App concatenates wf.issues. error blocks generate;
-    warning does not. generate() opens ValidationModal if any issues exist;
-    a clean form goes straight to ExportModal. generateAnyway() exports over
-    remaining issues. `submitted` stays false until the first generate press —
-    asterisks show from the start; chips/rings/inline errors appear only after
-    that press, then update live. Untouched blocks: one EMPTY_BLOCK warning,
-    no errors. Do not invent a second validation path.
+    admin/business/blocks. App concatenates wf.issues. Step-level errors block forward
+    navigation. Advancing from Step 3 marks Steps 1–3 attempted and runs the full-form
+    check: errors open ValidationModal and block Step 4; warnings do not block. Field
+    errors appear after the relevant step is attempted, then update live. Untouched
+    blocks produce one EMPTY_BLOCK warning and no errors. Do not invent a second
+    validation path.
 
   Export (client/src/lib.js compileSpec):
     Output keys: meta, administrative, businessNeed, workflows, technicalBlocks.
@@ -92,6 +95,31 @@ context: |
     (null if unlinked). buildAiExportText() concatenates JSON + ai-review.md (?raw).
     If the workflows JSON shape changes, update ai-review.md §3/§4 to match.
     Also: parseCurl, markdownToWordHtml (MarkdownToWordModal — "המרת אפיון AI ל-Word").
+
+  Step 4 chat flow (implemented, session is not persisted):
+    - Entering Step 4 after successful validation creates a client UUID and freezes a
+      seed from buildAiExportText(compileSpec(...)). Leaving Step 4 clears that session.
+    - AiChatStep uses @assistant-ui/react AssistantRuntimeProvider + useLocalRuntime.
+      useChatAdapter converts assistant-ui messages into string history/current turn.
+    - client/src/api/chatApi.js POSTs the session, seed, history and turn to /api/chat,
+      then parses SSE text, final, done and error events. Vite proxies /api to port 3001.
+    - Express mounts POST /api/chat with rate limiting and Zod request validation.
+      The server is stateless for chat history; the client resends visible history on
+      every turn. Client abort closes the Claude request.
+    - claudeTransformer builds the official SDK stream request with configured model
+      and MAX_TOKENS, one-hour ephemeral cache control, thinking disabled, the seed as
+      system text, and the strict submit_final_spec tool with automatic choice.
+    - claudeService forwards text deltas immediately. After stream completion it
+      validates the final tool payload; text becomes bubbles, a valid tool call emits
+      the final Markdown card and locks the composer, then done carries token usage.
+    - The fixed-height chat shell scrolls internally. User and assistant bubbles show
+      copy-on-hover with copied checkmarks. Waiting is a pulse without a bubble;
+      ScrollToBottom is hidden while already at the bottom.
+    - server/src/logger writes info-level chat and Claude timing/stream events to console
+      and server/logs/YYYY-MM-DD.log. server/data/usage.json is keyed by sessionId and
+      stores session totals plus successful completed turns: request config and sizes,
+      duration, response metadata, and the complete Anthropic usage object. Failed or
+      aborted turns are in operational logs, not usage.json.
 
   Persistence: localStorage key glassix-spec-builder:draft:v1
     { admin, business, workflows, blocks, wizard }, 600ms debounce in App.jsx.
@@ -107,17 +135,15 @@ context: |
   utilities resolve by generated stylesheet order, not class-string order;
   do not layer border-red-* on top of border-stone-* and expect it to win.
 
-  OpenSpec state: this repo has no openspec/specs and no openspec/changes yet.
-  CLAUDE.md is the architecture source of truth. HANDOFF.md (2026-07-28) is
-  historical: DECISION handle-bounds fix is in WorkflowNodeCard; HttpBlock
-  split is now in tree. The required-fields validation plan under
-  docs/superpowers/ is implemented, not pending.
+  OpenSpec state is stored under openspec/specs and openspec/changes. Inspect the
+  current directories instead of relying on hard-coded change status or historical
+  handoff files. This config and the current source tree are the project context.
 
 rules:
   proposal:
     - Always include a Non-goals section.
-    - Name the user (PM, Hebrew, non-developer) and the single export path
-      (JSON + ai-review.md → external LLM).
+    - Name the user (PM, Hebrew, non-developer) and the four-step path ending in
+      the in-app Claude chat seeded by compiled JSON + ai-review.md.
   specs:
     - Specs describe observable PM-facing behaviour in Hebrew UI terms, plus
       the compiled JSON contract when export is in scope.
@@ -155,11 +181,14 @@ rules:
 operations:
   apply:
     guidance:
-      - If a library, tool, tests, or TypeScript is needed, ask first, then use it.
+      - If a new library, tool, or test setup is needed, ask first, then use it.
         Never skip a needed dependency in favor of a homemade substitute.
-      - Verify with npm run lint, npm run build, and a browser pass of the changed flow.
+      - Verify frontend changes with npm run lint and npm run build; verify server changes
+        with npm run build:server; browser-check every changed UI flow.
       - Keep comments in English; all user-facing strings in Hebrew.
-      - Greenfield only: do not add legacy migrations or backward-compat shims unless the user explicitly asks.
+      - >-
+        Greenfield only: do not add legacy migrations or backward-compat shims unless
+        the user explicitly asks.
       - If export JSON shape changes, update client/src/prompts/ai-review.md in the same change.
   archive:
     guidance:

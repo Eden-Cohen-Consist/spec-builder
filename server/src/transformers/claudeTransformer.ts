@@ -28,6 +28,8 @@ export function toClaudeStreamParams(
   return {
     model: claudeModel,
     max_tokens: claudeMaxTokens,
+    cache_control: { type: "ephemeral", ttl: "1h" },
+    thinking: { type: "disabled" },
     system: toSystemPrompt(request),
     tools: [finalSpecTool],
     tool_choice: {

@@ -39,9 +39,9 @@ export default function AiChatStep({ sessionId, seed }) {
 
   return (
     <section className="animate-rise pt-8" aria-label="שיחה עם ה-AI">
-      <div className="relative overflow-hidden rounded-[1.75rem] border border-stone-200 bg-white shadow-xl shadow-stone-900/5 dark:border-stone-800 dark:bg-stone-900 dark:shadow-black/20">
+      <div className="relative flex h-[calc(100dvh-15rem)] min-h-[520px] max-h-[720px] flex-col overflow-hidden rounded-[1.75rem] border border-stone-200 bg-white shadow-xl shadow-stone-900/5 dark:border-stone-800 dark:bg-stone-900 dark:shadow-black/20">
         <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-l from-teal-400 via-teal-700 to-emerald-500" />
-        <header className="flex items-center justify-between gap-4 border-b border-stone-100 px-5 py-4 dark:border-stone-800 sm:px-7">
+        <header className="flex shrink-0 items-center justify-between gap-4 border-b border-stone-100 px-5 py-4 dark:border-stone-800 sm:px-7">
           <div>
             <p className="text-[11px] font-black tracking-[0.14em] text-teal-700 dark:text-teal-300">
               שלב 4 · סביבת גיבוש
