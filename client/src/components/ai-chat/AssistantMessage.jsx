@@ -6,6 +6,7 @@ import {
 } from "@assistant-ui/react";
 import { AlertCircle, Check, Copy } from "lucide-react";
 import { MarkdownText } from "./MarkdownText.jsx";
+import { ThinkingStatus } from "./ThinkingStatus.jsx";
 
 export function AssistantMessage() {
   return (
@@ -46,14 +47,7 @@ export function AssistantMessage() {
           )
         }
       >
-        <span
-          className="relative my-2 me-1 flex size-3 items-center justify-center"
-          role="status"
-          aria-label="העוזר חושב"
-        >
-          <span className="absolute size-3 animate-ping rounded-full bg-stone-400/45 dark:bg-stone-500/60" />
-          <span className="size-1.5 rounded-full bg-stone-500 dark:bg-stone-300" />
-        </span>
+        <ThinkingStatus />
       </AuiIf>
       <MessagePrimitive.Error>
         <ErrorPrimitive.Root className="flex items-center gap-2 text-[13px] text-red-700 dark:text-red-300">
