@@ -13,7 +13,8 @@ import { AssistantMessage } from "./AssistantMessage.jsx";
 import { FinalSpecCard } from "./FinalSpecCard.jsx";
 import { UserMessage } from "./UserMessage.jsx";
 
-export function ChatThread({ locked, finalSpec, error, onCopyFinal, copied }) {
+export function ChatThread({ finalSpec, generating, error }) {
+  const locked = Boolean(finalSpec) || generating;
   return (
     <ThreadPrimitive.Root className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
       <ThreadPrimitive.Viewport className="min-h-0 flex-1 overflow-y-auto px-5 py-2 sm:px-7">
@@ -35,17 +36,18 @@ export function ChatThread({ locked, finalSpec, error, onCopyFinal, copied }) {
         <div className="mx-auto w-full max-w-3xl">
           <ThreadPrimitive.Messages>
             {({ message }) =>
-              message.role === "user" ? <UserMessage /> : <AssistantMessage />
+              message.role === "user" ? <UserMessage /> : <AssistantMessage generating={generating} />
             }
           </ThreadPrimitive.Messages>
 
-          {finalSpec && (
-            <FinalSpecCard
-              finalSpec={finalSpec}
-              onCopyFinal={onCopyFinal}
-              copied={copied}
-            />
+          {generating && (
+            <div role="status" className="mx-auto my-8 flex w-full max-w-md flex-col items-center gap-4 rounded-2xl border border-teal-200 bg-teal-50 px-6 py-6 text-center text-teal-800 dark:border-teal-400/25 dark:bg-teal-950/30 dark:text-teal-200">
+              <span className="shimmer shimmer-document size-12 text-teal-700 dark:text-teal-300" aria-hidden="true" />
+              <span className="text-[15px] font-semibold leading-6">אני חושב שיש לי את מה שאני צריך, מכין לך אפיון</span>
+            </div>
           )}
+
+          {finalSpec && <FinalSpecCard finalSpec={finalSpec} />}
         </div>
       </ThreadPrimitive.Viewport>
 
@@ -70,7 +72,7 @@ export function ChatThread({ locked, finalSpec, error, onCopyFinal, copied }) {
           <ComposerPrimitive.Input
             disabled={locked}
             rows={1}
-            placeholder={locked ? "האפיון הושלם" : "כתבו הודעה…"}
+            placeholder={generating ? "מכין את האפיון…" : finalSpec ? "האפיון הושלם" : "כתבו הודעה…"}
             className="max-h-28 min-h-9 flex-1 resize-none bg-transparent py-1.5 text-[14px] leading-6 text-ink outline-none placeholder:text-stone-400 disabled:cursor-not-allowed disabled:opacity-60 dark:placeholder:text-stone-500"
           />
           <ComposerPrimitive.Send

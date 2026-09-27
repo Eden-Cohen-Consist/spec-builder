@@ -53,6 +53,8 @@ export const chatController = async ( request: Request,response: Response): Prom
     for await (const event of streamChat(parsed.data, abortController.signal)) {
       if (event.type === "text") {
         sendEvent(response, "text", { delta: event.delta });
+      } else if (event.type === "final_start") {
+        sendEvent(response, "final_start", {});
       } else if (event.type === "final") {
         sendEvent(response, "final", { specification: event.specification });
         logger.info("Final spec sent", { module: "chatController", sessionId });

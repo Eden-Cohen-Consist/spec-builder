@@ -18,7 +18,7 @@ export class ChatApiError extends Error {
 
 /**
  * Streams chat events from POST /api/chat (SSE).
- * Yields: { type: "text", delta }, { type: "final", specification }, { type: "done", usage }
+ * Yields: text, final_start, final, and done events.
  */
 export async function* streamChat({ sessionId, spec, history, turn, signal }) {
   let response;
@@ -71,6 +71,8 @@ export async function* streamChat({ sessionId, spec, history, turn, signal }) {
 
       if (event.type === "text") {
         yield { type: "text", delta: event.delta ?? event.text ?? "" };
+      } else if (event.type === "final_start") {
+        yield { type: "final_start" };
       } else if (event.type === "final") {
         yield {
           type: "final",

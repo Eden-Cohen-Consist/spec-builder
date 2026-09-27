@@ -37,12 +37,14 @@ const toUserMessage = (error) => {
 
 export function useChatAdapter({ sessionId, spec }) {
   const [finalSpec, setFinalSpec] = useState("");
+  const [generating, setGenerating] = useState(false);
   const [error, setError] = useState("");
 
   const adapter = useMemo(
     () => ({
       async *run({ messages, abortSignal }) {
         setError("");
+        setGenerating(false);
         const visible = messages
           .filter((message) => message.role === "user" || message.role === "assistant")
           .map((message) => ({ role: message.role, content: messageText(message) }))
@@ -50,6 +52,8 @@ export function useChatAdapter({ sessionId, spec }) {
         const current = visible.at(-1);
 
         let text = "";
+        let finalStarted = false;
+        let finalReceived = false;
         
         const chatParams = {
           sessionId,
@@ -62,22 +66,26 @@ export function useChatAdapter({ sessionId, spec }) {
         try {
           for await (const event of streamChat(chatParams)) {
             if (event.type === "text") {
+              if (finalStarted) continue;
               text += event.delta;
               yield { content: [{ type: "text", text }] };
+            } else if (event.type === "final_start") {
+              finalStarted = true;
+              text = "";
+              setGenerating(true);
+              yield { content: [] };
             } else if (event.type === "final") {
+              finalReceived = true;
+              setGenerating(false);
               setFinalSpec(event.specification);
-              yield {
-                content: [
-                  {
-                    type: "text",
-                    text:
-                      text || "האפיון הסופי מוכן ומוצג בהמשך השיחה.",
-                  },
-                ],
-              };
+              yield { content: [] };
             }
           }
+          if (finalStarted && !finalReceived) {
+            throw new ChatApiError("stream_error");
+          }
         } catch (streamError) {
+          setGenerating(false);
           if (abortSignal.aborted) return;
           const message = toUserMessage(streamError);
           setError(message);
@@ -88,5 +96,5 @@ export function useChatAdapter({ sessionId, spec }) {
     [spec, sessionId],
   );
 
-  return { adapter, finalSpec, error };
+  return { adapter, finalSpec, generating, error };
 }

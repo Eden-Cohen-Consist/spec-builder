@@ -22,9 +22,15 @@ export async function* streamChat( request: ChatRequest,signal?: AbortSignal ): 
   const claudeStreamParams = toClaudeStreamParams(request);
   logger.info("Claude stream started", { module: "streamChat", sessionId: request.sessionId });
   const stream = claude.messages.stream(claudeStreamParams, { signal });
+  let finalStarted = false;
 
   for await (const event of stream) {
-    if ( event.type === "content_block_delta" && event.delta.type === "text_delta" ) {
+    logger.debug(`Claude event ${JSON.stringify(event)}`, { module: "streamChat" });
+
+    if (event.type === "content_block_start" && event.content_block.type === "tool_use" && event.content_block.name === FINAL_TOOL_NAME) {
+      finalStarted = true;
+      yield { type: "final_start" };
+    } else if (!finalStarted && event.type === "content_block_delta" && event.delta.type === "text_delta") {
       yield { type: "text", delta: event.delta.text };
     }
   }
@@ -55,6 +61,9 @@ export async function* streamChat( request: ChatRequest,signal?: AbortSignal ): 
   }
 
   const finalBlock = toolBlocks[0];
+  if (finalStarted && !finalBlock) {
+    throw serviceError(INVALID_TOOL_PAYLOAD, "Final specification tool did not complete");
+  }
   if (finalBlock) {
     const parsed = finalSpecSchema.safeParse(finalBlock.input);
     if (!parsed.success) {

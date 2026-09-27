@@ -8,7 +8,7 @@ import { AlertCircle, Check, Copy } from "lucide-react";
 import { MarkdownText } from "./MarkdownText.jsx";
 import { ThinkingStatus } from "./ThinkingStatus.jsx";
 
-export function AssistantMessage() {
+export function AssistantMessage({ generating = false }) {
   return (
     <MessagePrimitive.Root className="group flex flex-col items-end gap-1 py-2">
       <AuiIf
@@ -41,6 +41,7 @@ export function AssistantMessage() {
       </AuiIf>
       <AuiIf
         condition={({ message }) =>
+          !generating &&
           message.status.type === "running" &&
           !message.content.some(
             (part) => part.type === "text" && part.text.length > 0,

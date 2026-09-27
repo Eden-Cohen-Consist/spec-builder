@@ -32,6 +32,7 @@ export type UsageTurn = {
 
 export type ChatStreamEvent =
   | { type: "text"; delta: string }
+  | { type: "final_start" }
   | { type: "final"; specification: string }
   | { type: "done"; usage: TokenUsage; usageTurn: UsageTurn };
 

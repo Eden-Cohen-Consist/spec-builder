@@ -1,4 +1,3 @@
-import { useEffect, useRef, useState } from "react";
 import {
   AssistantRuntimeProvider,
   useLocalRuntime,
@@ -7,35 +6,8 @@ import { useChatAdapter } from "../../hooks/useChatAdapter.js";
 import { ChatThread } from "./ChatThread.jsx";
 
 export default function AiChatStep({ sessionId, spec }) {
-  const { adapter, finalSpec, error } = useChatAdapter({ sessionId, spec });
+  const { adapter, finalSpec, generating, error } = useChatAdapter({ sessionId, spec });
   const runtime = useLocalRuntime(adapter);
-  const [copied, setCopied] = useState(false);
-  const copyTimer = useRef(null);
-
-  useEffect(
-    () => () => {
-      if (copyTimer.current) window.clearTimeout(copyTimer.current);
-    },
-    [],
-  );
-
-  const copyFinal = async () => {
-    try {
-      await navigator.clipboard.writeText(finalSpec);
-    } catch {
-      const textarea = document.createElement("textarea");
-      textarea.value = finalSpec;
-      textarea.style.position = "fixed";
-      textarea.style.opacity = "0";
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand("copy");
-      textarea.remove();
-    }
-    setCopied(true);
-    if (copyTimer.current) window.clearTimeout(copyTimer.current);
-    copyTimer.current = window.setTimeout(() => setCopied(false), 2000);
-  };
 
   return (
     <section className="animate-rise pt-8" aria-label="שיחה עם ה-AI">
@@ -58,11 +30,9 @@ export default function AiChatStep({ sessionId, spec }) {
 
         <AssistantRuntimeProvider runtime={runtime}>
           <ChatThread
-            locked={Boolean(finalSpec)}
             finalSpec={finalSpec}
+            generating={generating}
             error={error}
-            onCopyFinal={copyFinal}
-            copied={copied}
           />
         </AssistantRuntimeProvider>
       </div>

@@ -8,7 +8,8 @@ import { finalSpecTool } from "../schemas/finalSpecTool.js";
 import type { UsageTurn } from "../types/index.js";
 
 const SYSTEM_PROMPT = readFileSync(
-  resolve(serverRoot, "src/prompts/ai-review.md"),
+  // resolve(serverRoot, "src/prompts/ai-review.md"),
+  resolve(serverRoot, "src/prompts/test.md"),
   "utf8",
 ).trim();
 

@@ -5,9 +5,9 @@ schema: spec-driven
 context: |
   Product: "בונה אפיונים" (Glassix Spec Builder). Hebrew/RTL SPA for a PM (non-developer)
   to assemble a technical integration spec. Frontend lives in client/; API in server/.
-  The four-step wizard collects the product data, compiles it to schemaVersion 4 JSON,
-  wraps it with client/src/prompts/ai-review.md, and uses that text to seed the in-app
-  Claude chat. Claude asks clarification questions and returns the final Markdown spec.
+  The four-step wizard collects the product data and compiles it to schemaVersion 4
+  JSON. Step 4 sends that JSON to the backend Claude chat. Claude asks clarification
+  questions, then submits the final Markdown spec through submit_final_spec.
 
   Greenfield product: treat every new feature as shipping into a new system. Do not add
   backward-compatibility layers, legacy format converters, or round-trip keys for
@@ -17,7 +17,7 @@ context: |
   Frontend stack: plain JavaScript React (.jsx) + Vite 8 + Tailwind CSS v4
   (@tailwindcss/vite; tokens live in client/src/index.css @theme; no tailwind.config.js)
   + MUI with Emotion RTL + Ant Design Steps + @xyflow/react + @assistant-ui/react
-  + lucide-react + marked. Types are JSDoc @typedef next to frontend factories
+  + lucide-react + marked + docx. Types are JSDoc @typedef next to frontend factories
   (see client/src/workflow/model.js); @types/react is editor-only and the client has no
   tsconfig.json. Frontend linting is oxlint. Backend stack: TypeScript + Express 5 +
   Zod + official @anthropic-ai/sdk + Winston. If a change needs a new dependency,
@@ -92,26 +92,38 @@ context: |
     next: [{ to, when, condition }] where `to` is the target step name.
     Unreachable nodes are kept with unreachableFromStart: true.
     HTTP_REQUEST.config.blockId exports as integrationBlock = technicalBlocks[].name
-    (null if unlinked). buildAiExportText() concatenates JSON + ai-review.md (?raw).
-    If the workflows JSON shape changes, update ai-review.md §3/§4 to match.
+    (null if unlinked). buildAiExportText() combines JSON with the client
+    ai-review.md for the separate copy/export modal, not the Step 4 chat.
+    If the workflows JSON shape changes, update both client and server
+    ai-review.md workflow/integration instructions to match.
     Also: parseCurl, markdownToWordHtml (MarkdownToWordModal — "המרת אפיון AI ל-Word").
 
   Step 4 chat flow (implemented, session is not persisted):
-    - Entering Step 4 after successful validation creates a client UUID and freezes a
-      seed from buildAiExportText(compileSpec(...)). Leaving Step 4 clears that session.
+    - Entering Step 4 after successful validation creates a client UUID and freezes
+      the compiled JSON from compileSpec(...). Leaving Step 4 clears that session.
     - AiChatStep uses @assistant-ui/react AssistantRuntimeProvider + useLocalRuntime.
       useChatAdapter converts assistant-ui messages into string history/current turn.
-    - client/src/api/chatApi.js POSTs the session, seed, history and turn to /api/chat,
-      then parses SSE text, final, done and error events. Vite proxies /api to port 3001.
+    - client/src/api/chatApi.js POSTs the session, compiled JSON, history and turn to /api/chat,
+      then parses SSE text, final_start, final, done and error events. Vite proxies
+      /api to port 3001.
     - Express mounts POST /api/chat with rate limiting and Zod request validation.
       The server is stateless for chat history; the client resends visible history on
       every turn. Client abort closes the Claude request.
     - claudeTransformer builds the official SDK stream request with configured model
-      and MAX_TOKENS, one-hour ephemeral cache control, thinking disabled, the seed as
-      system text, and the strict submit_final_spec tool with automatic choice.
-    - claudeService forwards text deltas immediately. After stream completion it
-      validates the final tool payload; text becomes bubbles, a valid tool call emits
-      the final Markdown card and locks the composer, then done carries token usage.
+      and MAX_TOKENS, one-hour ephemeral cache control, thinking disabled, the server
+      prompt plus compiled JSON as system text, and the strict submit_final_spec tool
+      with automatic choice. server/src/prompts/ai-review.md is the intended production
+      prompt: its resolve(serverRoot, "src/prompts/ai-review.md") line is currently
+      commented out in claudeTransformer.ts. The active server/src/prompts/test.md is
+      only a temporary testing override; restore the production prompt before release.
+    - claudeService forwards clarification text immediately and emits final_start when
+      the registered tool call begins. Step 4 replaces provisional text with a Hebrew
+      generation status and locks the composer. After stream completion the validated
+      tool payload emits final; the UI shows a download card, not a Markdown bubble.
+      The composer stays locked after FINAL; done carries token usage.
+    - FinalSpecCard downloads Markdown directly or lazy-generates a styled RTL Word
+      document with client/src/export/markdownToDocx.js (marked + docx, Calibri and
+      blue accents). Neither download requires another Claude response.
     - The fixed-height chat shell scrolls internally. User and assistant bubbles show
       copy-on-hover with copied checkmarks. Waiting is a pulse without a bubble;
       ScrollToBottom is hidden while already at the bottom.
@@ -143,7 +155,7 @@ rules:
   proposal:
     - Always include a Non-goals section.
     - Name the user (PM, Hebrew, non-developer) and the four-step path ending in
-      the in-app Claude chat seeded by compiled JSON + ai-review.md.
+      the in-app Claude chat seeded by compiled JSON + the server ai-review.md prompt.
   specs:
     - Specs describe observable PM-facing behaviour in Hebrew UI terms, plus
       the compiled JSON contract when export is in scope.
@@ -176,7 +188,7 @@ rules:
     - Needed libraries/tools are allowed. Ask before adding a dependency;
       do not hand-roll a worse substitute.
     - If compileSpec or workflows JSON shape changes, include a task to update
-      client/src/prompts/ai-review.md §3/§4.
+      both client/src/prompts/ai-review.md and server/src/prompts/ai-review.md.
 
 operations:
   apply:
@@ -189,7 +201,8 @@ operations:
       - >-
         Greenfield only: do not add legacy migrations or backward-compat shims unless
         the user explicitly asks.
-      - If export JSON shape changes, update client/src/prompts/ai-review.md in the same change.
+      - If export JSON shape changes, update both client and server ai-review.md prompts
+        in the same change.
   archive:
     guidance:
       - Summarize what shipped vs what was left as a prototype (e.g. iframe demo).
