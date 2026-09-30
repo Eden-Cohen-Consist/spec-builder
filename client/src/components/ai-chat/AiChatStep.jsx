@@ -1,0 +1,41 @@
+import {
+  AssistantRuntimeProvider,
+  useLocalRuntime,
+} from "@assistant-ui/react";
+import { useChatAdapter } from "../../hooks/useChatAdapter.js";
+import { ChatThread } from "./ChatThread.jsx";
+
+export default function AiChatStep({ sessionId, spec }) {
+  const { adapter, finalSpec, generating, error } = useChatAdapter({ sessionId, spec });
+  const runtime = useLocalRuntime(adapter);
+
+  return (
+    <section className="animate-rise pt-8" aria-label="שיחה עם ה-AI">
+      <div className="relative flex h-[calc(100dvh-15rem)] min-h-[520px] max-h-[720px] flex-col overflow-hidden rounded-[1.75rem] border border-stone-200 bg-white shadow-xl shadow-stone-900/5 dark:border-stone-800 dark:bg-stone-900 dark:shadow-black/20">
+        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-l from-teal-400 via-teal-700 to-emerald-500" />
+        <header className="flex shrink-0 items-center justify-between gap-4 border-b border-stone-100 px-5 py-4 dark:border-stone-800 sm:px-7">
+          <div>
+            <p className="text-[11px] font-black tracking-[0.14em] text-teal-700 dark:text-teal-300">
+              שלב 4 · סביבת גיבוש
+            </p>
+            <h1 className="mt-1 font-display text-[23px] font-black text-ink">
+              שיחה עם ה-AI
+            </h1>
+          </div>
+          <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[12px] font-bold text-emerald-700 dark:border-emerald-500/25 dark:bg-emerald-950/30 dark:text-emerald-300">
+            <span className="size-1.5 rounded-full bg-emerald-500" />
+            הטיוטה נטענה
+          </span>
+        </header>
+
+        <AssistantRuntimeProvider runtime={runtime}>
+          <ChatThread
+            finalSpec={finalSpec}
+            generating={generating}
+            error={error}
+          />
+        </AssistantRuntimeProvider>
+      </div>
+    </section>
+  );
+}
